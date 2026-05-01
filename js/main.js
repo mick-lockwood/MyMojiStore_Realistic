@@ -1,5 +1,6 @@
 // --- GLOBAL STATE & LOCAL STORAGE ---
 let playerMoney = 50.00;
+let playerPacks = 0; // NEW: Track unopened packs
 let playerInventory = {};
 
 // 1. Initialize default inventory based on database
@@ -7,20 +8,18 @@ myMojiDatabase.forEach(moji => {
     playerInventory[moji.id] = 0;
 });
 
-// 2. Load Save Data (If it exists)
+// 2. Load Save Data
 function loadGame() {
     let savedData = localStorage.getItem('myMojiSave');
     if (savedData) {
         let parsedData = JSON.parse(savedData);
-        playerMoney = parsedData.money;
-        
-        // Carefully merge saved inventory into our default structure
+        playerMoney = parsedData.money || 50;
+        playerPacks = parsedData.packs || 0; // Load packs
         for (let id in parsedData.inventory) {
             if (playerInventory[id] !== undefined) {
                 playerInventory[id] = parsedData.inventory[id];
             }
         }
-        console.log("Save file loaded successfully!");
     }
 }
 
@@ -28,13 +27,12 @@ function loadGame() {
 function saveGame() {
     let dataToSave = {
         money: playerMoney,
+        packs: playerPacks,
         inventory: playerInventory
     };
     localStorage.setItem('myMojiSave', JSON.stringify(dataToSave));
-    console.log("Game Saved.");
 }
 
-// Run the load function immediately before the game starts
 loadGame();
 
 // --- PHASER ENGINE SETUP ---
@@ -52,20 +50,19 @@ const game = new Phaser.Game(config);
 function create() {
     const scene = this; 
 
-    // --- UI: BANK & MONEY ---
+    // --- UI: TOP BAR ---
     scene.moneyText = scene.add.text(20, 20, 'Bank: $' + playerMoney.toFixed(2), { 
         fontFamily: 'Arial', fontSize: '28px', color: '#2ecc71', fontStyle: 'bold' 
     });
 
-    // NEW --- UI: RESET GAME BUTTON ---
+    scene.packsText = scene.add.text(20, 60, 'Packs Owned: ' + playerPacks, { 
+        fontFamily: 'Arial', fontSize: '20px', color: '#3498db', fontStyle: 'bold' 
+    });
+
     const resetBtn = scene.add.text(880, 20, 'RESET GAME', { 
         fontFamily: 'Arial', fontSize: '16px', color: '#e74c3c', fontStyle: 'bold' 
     }).setInteractive();
-
-    resetBtn.on('pointerover', () => resetBtn.setColor('#c0392b'));
-    resetBtn.on('pointerout', () => resetBtn.setColor('#e74c3c'));
     resetBtn.on('pointerdown', () => {
-        // Wipe the save file and refresh the browser page
         if (confirm("Are you sure you want to delete your save and start over?")) {
             localStorage.removeItem('myMojiSave');
             location.reload(); 
@@ -79,23 +76,37 @@ function create() {
     scene.sellZone = scene.add.rectangle(874, 580, 240, 80, 0xc0392b).setStrokeStyle(4, 0x1a1a1a);
     scene.add.text(874, 580, 'SELL FOR CASH', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
 
-    // --- UI: OPEN PACK BUTTON ---
-    const packButton = scene.add.rectangle(512, 680, 240, 60, 0x27ae60).setInteractive().setStrokeStyle(4, 0x1a1a1a);
-    scene.add.text(512, 680, 'OPEN PACK ($5)', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    // --- UI: STORE CONTROLS ---
+    const buyPackBtn = scene.add.rectangle(400, 680, 180, 60, 0x2980b9).setInteractive().setStrokeStyle(4, 0x1a1a1a);
+    scene.add.text(400, 680, 'BUY PACK ($5)', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
 
-    packButton.on('pointerdown', () => {
-        packButton.setScale(0.95);
+    buyPackBtn.on('pointerdown', () => {
         if (playerMoney >= 5.00) {
             playerMoney -= 5.00;
+            playerPacks += 1;
             scene.moneyText.setText('Bank: $' + playerMoney.toFixed(2));
-            saveGame(); // Save immediately when money is spent
-            spawnBoosterPack(scene); 
+            scene.packsText.setText('Packs Owned: ' + playerPacks);
+            saveGame();
         } else {
             scene.moneyText.setColor('#e74c3c');
             scene.time.delayedCall(300, () => scene.moneyText.setColor('#2ecc71'));
         }
     });
-    packButton.on('pointerup', () => packButton.setScale(1));
+
+    const openPackBtn = scene.add.rectangle(624, 680, 180, 60, 0x27ae60).setInteractive().setStrokeStyle(4, 0x1a1a1a);
+    scene.add.text(624, 680, 'OPEN PACK', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+
+    openPackBtn.on('pointerdown', () => {
+        if (playerPacks > 0) {
+            playerPacks -= 1;
+            scene.packsText.setText('Packs Owned: ' + playerPacks);
+            saveGame();
+            spawnBoosterPack(scene); 
+        } else {
+            scene.packsText.setColor('#e74c3c');
+            scene.time.delayedCall(300, () => scene.packsText.setColor('#3498db'));
+        }
+    });
 
     // --- UI: VIEW BINDER BUTTON ---
     const viewBinderBtn = scene.add.rectangle(874, 680, 240, 60, 0x34495e).setInteractive().setStrokeStyle(4, 0x1a1a1a);
@@ -104,19 +115,19 @@ function create() {
     const binderOverlay = createBinderOverlay(scene);
 
     viewBinderBtn.on('pointerdown', () => {
-        updateBinderView(scene, binderOverlay); 
+        renderBinderGrid(scene, binderOverlay); 
         binderOverlay.setVisible(true);  
     });
 }
 
-// --- SYSTEMS ---
+// --- CORE SYSTEMS ---
 
 function spawnBoosterPack(scene) {
     const spacing = 260; 
     let startX = 252;    
     for (let i = 0; i < 3; i++) {
         let pulledMoji = pullCardWithWeights();
-        createCard(scene, startX + (i * spacing), 350, pulledMoji);
+        createDraggableCard(scene, startX + (i * spacing), 350, pulledMoji);
     }
 }
 
@@ -132,104 +143,153 @@ function pullCardWithWeights() {
     return myMojiDatabase[0]; 
 }
 
-function createCard(scene, x, y, mojiData) {
+// NEW: Separated the visual drawing from the drag logic
+function createCardGraphic(scene, mojiData) {
+    const bg = scene.add.rectangle(0, 0, 220, 320, 0xffffff).setStrokeStyle(6, 0x1a1a1a);
+    const imgBox = scene.add.rectangle(0, -40, 180, 160, 0xe0e0e0).setStrokeStyle(3, 0xcccccc);
+    const nameTxt = scene.add.text(0, -140, mojiData.name, { fontFamily: 'Arial', fontSize: '20px', color: '#000000', fontStyle: 'bold' }).setOrigin(0.5);
+    const rarityTxt = scene.add.text(0, 70, mojiData.rarity, { fontFamily: 'Arial', fontSize: '16px', color: '#7f8c8d' }).setOrigin(0.5);
+    const valTxt = scene.add.text(0, 110, '$' + mojiData.baseValue.toFixed(2), { fontFamily: 'Arial', fontSize: '24px', color: '#27ae60', fontStyle: 'bold' }).setOrigin(0.5);
+    return [bg, imgBox, nameTxt, rarityTxt, valTxt];
+}
+
+function createDraggableCard(scene, x, y, mojiData) {
     const card = scene.add.container(x, y);
-    card.setDepth(10); 
-
-    const cardBg = scene.add.rectangle(0, 0, 220, 320, 0xffffff).setStrokeStyle(6, 0x1a1a1a);
-    const imageBox = scene.add.rectangle(0, -40, 180, 160, 0xe0e0e0).setStrokeStyle(3, 0xcccccc);
-    const nameText = scene.add.text(0, -140, mojiData.name, { fontFamily: 'Arial', fontSize: '20px', color: '#000000', fontStyle: 'bold' }).setOrigin(0.5);
-    const rarityText = scene.add.text(0, 70, mojiData.rarity, { fontFamily: 'Arial', fontSize: '16px', color: '#7f8c8d' }).setOrigin(0.5);
-    const valueText = scene.add.text(0, 110, '$' + mojiData.baseValue.toFixed(2), { fontFamily: 'Arial', fontSize: '24px', color: '#27ae60', fontStyle: 'bold' }).setOrigin(0.5);
-
-    card.add([cardBg, imageBox, nameText, rarityText, valueText]);
+    card.add(createCardGraphic(scene, mojiData));
     card.setSize(220, 320);
     card.setInteractive();
     scene.input.setDraggable(card);
+    card.setDepth(10); 
 
-    card.on('drag', function (pointer, dragX, dragY) {
-        this.x = dragX;
-        this.y = dragY;
-    });
-
-    card.on('dragstart', function () {
-        this.setScale(1.05);
-        this.setDepth(50); 
-    });
-
+    card.on('drag', function (p, dragX, dragY) { this.x = dragX; this.y = dragY; });
+    card.on('dragstart', function () { this.setScale(1.05); this.setDepth(50); });
     card.on('dragend', function () {
         this.setScale(1);
         this.setDepth(10); 
+        let bounds = this.getBounds();
         
-        let cardBounds = this.getBounds();
-        let binderBounds = scene.binderZone.getBounds();
-        let sellBounds = scene.sellZone.getBounds();
-
-        // 1. Check if dropped in the Binder
-        if (Phaser.Geom.Intersects.RectangleToRectangle(cardBounds, binderBounds)) {
+        if (Phaser.Geom.Intersects.RectangleToRectangle(bounds, scene.binderZone.getBounds())) {
             playerInventory[mojiData.id] += 1; 
-            saveGame(); // Save when a card is stashed
+            saveGame();
             this.destroy(); 
         }
-        // 2. Check if dropped in the Sell Box
-        else if (Phaser.Geom.Intersects.RectangleToRectangle(cardBounds, sellBounds)) {
+        else if (Phaser.Geom.Intersects.RectangleToRectangle(bounds, scene.sellZone.getBounds())) {
             playerMoney += mojiData.baseValue; 
             scene.moneyText.setText('Bank: $' + playerMoney.toFixed(2));
-            scene.moneyText.setColor('#f1c40f'); 
-            scene.time.delayedCall(300, () => scene.moneyText.setColor('#2ecc71'));
-            
-            saveGame(); // Save when a card is sold
+            saveGame();
             this.destroy(); 
         }
     });
 }
 
-// --- BINDER MENU & WITHDRAWAL LOGIC ---
+// --- VISUAL BINDER & PAGINATION LOGIC ---
 
 function createBinderOverlay(scene) {
     const overlay = scene.add.container(512, 384).setVisible(false);
     overlay.setDepth(100); 
 
-    const bg = scene.add.rectangle(0, 0, 800, 600, 0x1a1a1a).setStrokeStyle(4, 0xecf0f1).setInteractive(); 
-
-    const title = scene.add.text(0, -250, 'MY COLLECTION', { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-    
-    const closeBtn = scene.add.rectangle(0, 250, 200, 50, 0xe74c3c).setInteractive();
-    const closeText = scene.add.text(0, 250, 'CLOSE', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-    
+    const bg = scene.add.rectangle(0, 0, 900, 650, 0x1a1a1a).setStrokeStyle(4, 0xecf0f1).setInteractive(); 
+    const title = scene.add.text(0, -290, 'MY COLLECTION', { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const closeBtn = scene.add.rectangle(0, 300, 200, 40, 0xe74c3c).setInteractive();
+    const closeText = scene.add.text(0, 300, 'CLOSE', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     closeBtn.on('pointerdown', () => overlay.setVisible(false));
 
     overlay.add([bg, title, closeBtn, closeText]);
-    overlay.listItems = []; 
+    
+    // State variables for the overlay
+    overlay.currentCategory = 'Common';
+    overlay.viewMode = 'Collection'; // 'Collection' or 'Doubles'
+    overlay.gridContainer = scene.add.container(0, 0); // Holds the mini-cards
+    overlay.add(overlay.gridContainer);
+
+    // --- SETUP TABS ---
+    const categories = ['Common', 'Rare', 'Epic', 'Legendary'];
+    let tabX = -300;
+    categories.forEach(cat => {
+        let tab = scene.add.text(tabX, -240, cat.toUpperCase(), { fontSize: '18px', color: '#7f8c8d', fontStyle: 'bold' }).setInteractive().setOrigin(0.5);
+        tab.on('pointerdown', () => {
+            overlay.currentCategory = cat;
+            renderBinderGrid(scene, overlay);
+        });
+        overlay.add(tab);
+        tabX += 200;
+    });
+
+    // --- SETUP MODE TOGGLE (Collection vs Doubles) ---
+    const modeBtn = scene.add.rectangle(0, 240, 300, 40, 0xf39c12).setInteractive();
+    const modeText = scene.add.text(0, 240, 'VIEWING: MAIN COLLECTION', { fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    
+    modeBtn.on('pointerdown', () => {
+        overlay.viewMode = (overlay.viewMode === 'Collection') ? 'Doubles' : 'Collection';
+        modeText.setText(overlay.viewMode === 'Collection' ? 'VIEWING: MAIN COLLECTION (SAFE)' : 'VIEWING: DOUBLES (CLICK TO WITHDRAW)');
+        modeBtn.setFillStyle(overlay.viewMode === 'Collection' ? 0xf39c12 : 0x8e44ad);
+        renderBinderGrid(scene, overlay);
+    });
+
+    overlay.add([modeBtn, modeText]);
     return overlay;
 }
 
-function updateBinderView(scene, overlay) {
-    overlay.listItems.forEach(item => item.destroy());
-    overlay.listItems = [];
+function renderBinderGrid(scene, overlay) {
+    // 1. Clear old grid
+    overlay.gridContainer.removeAll(true);
 
-    let yPos = -180; 
+    // 2. Filter database by active category
+    let filteredCards = myMojiDatabase.filter(m => m.rarity === overlay.currentCategory);
 
-    myMojiDatabase.forEach(moji => {
-        let count = playerInventory[moji.id];
-        if (count > 0) {
-            let rowText = scene.add.text(-350, yPos, `${moji.name} (x${count})  >>  [ CLICK TO WITHDRAW ]`, { 
-                fontFamily: 'Courier New', fontSize: '18px', color: '#f39c12' 
-            }).setInteractive();
+    // 3. Setup grid math
+    let startX = -320;
+    let startY = -120;
+    let col = 0;
+    let spacingX = 160;
+    let spacingY = 220;
 
-            rowText.on('pointerover', () => rowText.setColor('#ffffff'));
-            rowText.on('pointerout', () => rowText.setColor('#f39c12'));
+    filteredCards.forEach(moji => {
+        let owned = playerInventory[moji.id];
+        
+        // Logic check: Do we draw this card?
+        let shouldDraw = false;
+        let withdrawableAmount = 0;
 
-            rowText.on('pointerdown', () => {
-                playerInventory[moji.id] -= 1; 
-                saveGame(); // Save when a card is withdrawn
-                createCard(scene, 512, 384, moji); 
-                updateBinderView(scene, overlay); 
-            });
+        if (overlay.viewMode === 'Collection' && owned >= 1) {
+            shouldDraw = true; // Show 1st copy
+        } else if (overlay.viewMode === 'Doubles' && owned > 1) {
+            shouldDraw = true; // Show extra copies
+            withdrawableAmount = owned - 1; 
+        }
 
-            overlay.add(rowText);
-            overlay.listItems.push(rowText);
-            yPos += 30; 
+        if (shouldDraw) {
+            // Build the mini-card graphic
+            let miniCard = scene.add.container(startX + (col * spacingX), startY);
+            miniCard.add(createCardGraphic(scene, moji));
+            miniCard.setScale(0.45); // Shrink it down!
+            
+            // Add a counter badge
+            let displayCount = overlay.viewMode === 'Doubles' ? withdrawableAmount : owned;
+            let badgeBg = scene.add.circle(80, -130, 40, 0xe74c3c);
+            let badgeTxt = scene.add.text(80, -130, 'x' + displayCount, { fontSize: '40px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+            miniCard.add([badgeBg, badgeTxt]);
+
+            // Add interaction if in Doubles mode
+            if (overlay.viewMode === 'Doubles') {
+                miniCard.setSize(220, 320); // Set hit area
+                miniCard.setInteractive({ cursor: 'pointer' });
+                miniCard.on('pointerdown', () => {
+                    playerInventory[moji.id] -= 1; // Take one out
+                    saveGame();
+                    createDraggableCard(scene, 512, 384, moji); // Spawn it on the table
+                    renderBinderGrid(scene, overlay); // Refresh the grid
+                });
+            }
+
+            overlay.gridContainer.add(miniCard);
+
+            // Move to next column
+            col++;
+            if (col > 4) { // Max 5 columns
+                col = 0;
+                startY += spacingY;
+            }
         }
     });
 }
