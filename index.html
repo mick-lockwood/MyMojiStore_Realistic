@@ -3,75 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCG Shop Simulator</title>
-    <!-- Load Phaser directly from the CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js"></script>
+    <title>MyMoji Store</title>
+    <script src="[https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js](https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js)"></script>
+    
+    <!-- Load our database first -->
+    <script src="js/data/database.js"></script>
+    
     <style>
         body {
             margin: 0;
             padding: 0;
-            background-color: #121212; /* Clean, dark minimalist background */
+            background-color: #121212; 
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            color: #ffffff;
-            font-family: sans-serif;
-        }
-        #game-container {
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
     </style>
 </head>
 <body>
-
     <div id="game-container"></div>
 
     <script>
-        // Game Configuration
         const config = {
             type: Phaser.AUTO,
-            width: 800,
-            height: 600,
-            backgroundColor: '#1e1e1e', // Dark mode canvas
+            width: 1024,
+            height: 768,
+            backgroundColor: '#2b2b2b', // Dark workspace for the shop counter
             parent: 'game-container',
             scene: {
-                preload: preload,
-                create: create,
-                update: update
+                create: create
             }
         };
 
         const game = new Phaser.Game(config);
 
-        function preload() {
-            // Later, you'll load your card sprites and NPC animations here
-        }
-
         function create() {
-            // Add some starting text
-            this.add.text(400, 50, 'Card Shop Open for Business', { 
-                fontSize: '24px', 
-                fill: '#ffffff' 
-            }).setOrigin(0.5);
+            // Let's grab the first Moji from your database
+            let firstMoji = mojiDatabase[0];
 
-            // Let's create a placeholder "Card" we can drag around
-            let card = this.add.rectangle(400, 300, 100, 140, 0x444444).setStrokeStyle(2, 0x888888);
-            this.add.text(400, 300, 'Drag Me', { fill: '#fff' }).setOrigin(0.5);
+            // 1. Create a minimalist, fine-line card background
+            let cardBg = this.add.rectangle(0"MyMoji Store" is a fantastic name. It immediately gives the game a clear identity and suggests a fun, colorful, and collectible vibe. Working entirely within Codespaces and pushing directly to Pages is also the perfect lightweight workflow to keep your momentum going.
 
-            // Make the card interactive and draggable
-            card.setInteractive();
-            this.input.setDraggable(card);
+Since I am choosing the next move, we are going to build the **Data Foundation**. 
 
-            this.input.on('drag', function (pointer, gameObject, dragX, dragY) {
-                gameObject.x = dragX;
-                gameObject.y = dragY;
-            });
-        }
+You cannot open a booster pack, stock a shelf, or haggle with a customer if the game engine does not know what a "MyMoji" is. We need a central dictionary that holds the stats, value, and rarity of every item in the game.
 
-        function update() {
-            // Game logic loop (e.g., checking if an NPC has walked in)
-        }
-    </script>
-</body>
-</html>
+### **1. Creating the MyMoji Database**
+
+In your Codespaces file tree, create a new folder named `js`, inside that create another folder named `data`, and finally create a file named `database.js`. 
+
+Here is the starter code. We are using a simple JavaScript array of objects, which makes it very easy to filter (e.g., finding all "Rare" cards) or pick a random item later.
+```javascript
+// File: js/data/database.js
+
+const myMojiDatabase = [
+    {
+        id: "moji_001",
+        name: "Classic Smile",
+        rarity: "Common",
+        baseValue: 1.50, // Market value in dollars
+        imageRef: "smile" // We will map this to your Photoshop exports later
+    },
+    {
+        id: "moji_002",
+        name: "Sweat Drop",
+        rarity: "Common",
+        baseValue: 1.25,
+        imageRef: "sweat"
+    },
+    {
+        id: "moji_003",
+        name: "Star Eyes",
+        rarity: "Rare",
+        baseValue: 15.00,
+        imageRef: "stars"
+    },
+    {
+        id: "moji_004",
+        name: "Melting Face",
+        rarity: "Epic",
+        baseValue: 85.00,
+        imageRef: "melt"
+    },
+    {
+        id: "moji_005",
+        name: "Golden Crown",
+        rarity: "Legendary",
+        baseValue: 500.00,
+        imageRef: "crown"
+    }
+];
+
+// A helper function we will use later to find a card's data instantly
+function getMojiById(id) {
+    return myMojiDatabase.find(moji => moji.id === id);
+}
