@@ -6,194 +6,30 @@
     <title>MyMoji Store</title>
     <!-- 1. Engine -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js"></script>
+    
     <!-- 2. Data -->
     <script src="js/data/myMojiDatabase.js"></script>
+    
     <!-- 3. Game Logic -->
     <script src="js/main.js" defer></script>
+    
     <style>
-        body { margin: 0; padding: 0; background-color: #121212; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        #game-container { box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.8); }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: #121212; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+        }
+        #game-container { 
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.8); 
+        }
     </style>
 </head>
 <body>
+    <!-- Phaser will automatically inject the game canvas right here -->
     <div id="game-container"></div>
-
-    <script>
-        // --- GLOBAL STATE (The Player's Save Data) ---
-        let playerMoney = 50.00;
-        let playerInventory = {};
-        
-        // Initialize inventory counts to 0 for every Moji
-        myMojiDatabase.forEach(moji => {
-            playerInventory[moji.id] = 0;
-        });
-
-        const config = {
-            type: Phaser.AUTO,
-            width: 1024,
-            height: 768,
-            backgroundColor: '#2c3e50', 
-            scene: { create: create }
-        };
-
-        const game = new Phaser.Game(config);
-
-        function create() {
-            // --- UI: BANK & MONEY ---
-            const moneyText = this.add.text(20, 20, 'Bank: $' + playerMoney.toFixed(2), { 
-                fontFamily: 'Arial', fontSize: '28px', color: '#2ecc71', fontStyle: 'bold' 
-            });
-
-            // --- UI: BINDER DROP ZONE ---
-            // This is where players drag cards to save them
-            const binderZone = this.add.rectangle(150, 680, 240, 100, 0x8e44ad);
-            binderZone.setStrokeStyle(4, 0x1a1a1a);
-            this.add.text(150, 680, 'DROP IN BINDER', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-
-            // --- UI: OPEN PACK BUTTON ---
-            const packButton = this.add.rectangle(512, 680, 240, 60, 0x27ae60).setInteractive();
-            packButton.setStrokeStyle(4, 0x1a1a1a);
-            this.add.text(512, 680, 'OPEN PACK ($5)', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-
-            packButton.on('pointerdown', () => {
-                packButton.setScale(0.95);
-                
-                // Check if player has enough money
-                if (playerMoney >= 5.00) {
-                    playerMoney -= 5.00;
-                    moneyText.setText('Bank: $' + playerMoney.toFixed(2));
-                    spawnBoosterPack(this, binderZone); // Pass binderZone so cards know where to drop
-                } else {
-                    // Flash red if broke
-                    moneyText.setColor('#e74c3c');
-                    this.time.delayedCall(300, () => moneyText.setColor('#2ecc71'));
-                }
-            });
-
-            packButton.on('pointerup', () => packButton.setScale(1));
-
-            // --- UI: VIEW BINDER BUTTON & OVERLAY ---
-            const viewBinderBtn = this.add.rectangle(874, 680, 240, 60, 0x34495e).setInteractive();
-            viewBinderBtn.setStrokeStyle(4, 0x1a1a1a);
-            this.add.text(874, 680, 'VIEW BINDER', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-
-            // The Binder Menu Overlay (Hidden by default)
-            const binderOverlay = createBinderOverlay(this);
-
-            viewBinderBtn.on('pointerdown', () => {
-                updateBinderText(binderOverlay); // Refresh the counts
-                binderOverlay.setVisible(true);  // Show menu
-            });
-        }
-
-        // --- NEW SYSTEMS ---
-
-        function spawnBoosterPack(scene, binderZone) {
-            const spacing = 260; 
-            let startX = 252;    
-            for (let i = 0; i < 3; i++) {
-                let pulledMoji = pullCardWithWeights();
-                createCard(scene, startX + (i * spacing), 350, pulledMoji, binderZone);
-            }
-        }
-
-        function pullCardWithWeights() {
-            const rarityWeights = { "Common": 70, "Rare": 20, "Epic": 9, "Legendary": 1 };
-            let totalWeight = 0;
-            for (let i = 0; i < myMojiDatabase.length; i++) totalWeight += rarityWeights[myMojiDatabase[i].rarity];
-            
-            let randomNum = Math.random() * totalWeight;
-            for (let i = 0; i < myMojiDatabase.length; i++) {
-                randomNum -= rarityWeights[myMojiDatabase[i].rarity];
-                if (randomNum <= 0) return myMojiDatabase[i];
-            }
-            return myMojiDatabase[0]; 
-        }
-
-        // Updated Factory: Now handles collisions with the Binder Drop Zone
-        function createCard(scene, x, y, mojiData, binderZone) {
-            const card = scene.add.container(x, y);
-
-            const cardBg = scene.add.rectangle(0, 0, 220, 320, 0xffffff).setStrokeStyle(6, 0x1a1a1a);
-            const imageBox = scene.add.rectangle(0, -40, 180, 160, 0xe0e0e0).setStrokeStyle(3, 0xcccccc);
-            const nameText = scene.add.text(0, -140, mojiData.name, { fontFamily: 'Arial', fontSize: '20px', color: '#000000', fontStyle: 'bold' }).setOrigin(0.5);
-            const rarityText = scene.add.text(0, 70, mojiData.rarity, { fontFamily: 'Arial', fontSize: '16px', color: '#7f8c8d' }).setOrigin(0.5);
-            const valueText = scene.add.text(0, 110, '$' + mojiData.baseValue.toFixed(2), { fontFamily: 'Arial', fontSize: '24px', color: '#27ae60', fontStyle: 'bold' }).setOrigin(0.5);
-
-            card.add([cardBg, imageBox, nameText, rarityText, valueText]);
-            card.setSize(220, 320);
-            card.setInteractive();
-            scene.input.setDraggable(card);
-
-            scene.input.on('drag', (pointer, gameObject, dragX, dragY) => {
-                gameObject.x = dragX;
-                gameObject.y = dragY;
-            });
-
-            scene.input.on('dragstart', (pointer, gameObject) => {
-                gameObject.setScale(1.05);
-                scene.children.bringToTop(gameObject);
-            });
-
-            // --- COLLISION LOGIC ---
-            scene.input.on('dragend', (pointer, gameObject) => {
-                gameObject.setScale(1);
-                
-                // Get the bounding boxes of the card and the drop zone
-                let cardBounds = gameObject.getBounds();
-                let zoneBounds = binderZone.getBounds();
-
-                // If they overlap, stash the card in the inventory!
-                if (Phaser.Geom.Intersects.RectangleToRectangle(cardBounds, zoneBounds)) {
-                    playerInventory[mojiData.id] += 1; // Add 1 to the counter
-                    console.log(`Saved ${mojiData.name}! Total owned: ${playerInventory[mojiData.id]}`);
-                    gameObject.destroy(); // Remove the physical card from the table
-                }
-            });
-        }
-
-        // --- BINDER MENU LOGIC ---
-        function createBinderOverlay(scene) {
-            const overlay = scene.add.container(512, 384).setVisible(false);
-            scene.children.bringToTop(overlay);
-
-            // Dark background panel
-            const bg = scene.add.rectangle(0, 0, 800, 600, 0x1a1a1a).setStrokeStyle(4, 0xecf0f1);
-            const title = scene.add.text(0, -250, 'MY COLLECTION', { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-            
-            // Close Button
-            const closeBtn = scene.add.rectangle(0, 250, 200, 50, 0xe74c3c).setInteractive();
-            const closeText = scene.add.text(0, 250, 'CLOSE', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-            
-            closeBtn.on('pointerdown', () => overlay.setVisible(false));
-
-            // Text object that will hold our inventory list
-            const listText = scene.add.text(-350, -180, '', { fontFamily: 'Arial', fontSize: '18px', color: '#bdc3c7', lineSpacing: 10 });
-            overlay.listTextObj = listText; // Attach it to the overlay so we can update it later
-
-            overlay.add([bg, title, closeBtn, closeText, listText]);
-            return overlay;
-        }
-
-        function updateBinderText(overlay) {
-            let displayText = "COMMONS:\n";
-            let rares = "\nRARES:\n";
-            let epics = "\nEPICS:\n";
-            let legendaries = "\nLEGENDARIES:\n";
-
-            // Loop through the database and format the text based on what the player owns
-            myMojiDatabase.forEach(moji => {
-                let count = playerInventory[moji.id];
-                let line = `${moji.name}: ${count} owned\n`;
-
-                if (moji.rarity === "Common") displayText += line;
-                else if (moji.rarity === "Rare") rares += line;
-                else if (moji.rarity === "Epic") epics += line;
-                else if (moji.rarity === "Legendary") legendaries += line;
-            });
-
-            overlay.listTextObj.setText(displayText + rares + epics + legendaries);
-        }
-    </script>
 </body>
 </html>
