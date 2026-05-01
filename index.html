@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MyMoji Store</title>
-    <script src="[https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js](https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js)"></script>
+    <!-- Load Phaser -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js"></script>
     
-    <!-- Load our database first -->
+    <!-- Load our database -->
     <script src="js/data/database.js"></script>
     
     <style>
@@ -19,18 +20,19 @@
             align-items: center;
             height: 100vh;
         }
+        canvas {
+            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.8);
+        }
     </style>
 </head>
 <body>
-    <div id="game-container"></div>
 
     <script>
         const config = {
             type: Phaser.AUTO,
             width: 1024,
             height: 768,
-            backgroundColor: '#2b2b2b', // Dark workspace for the shop counter
-            parent: 'game-container',
+            backgroundColor: '#2c3e50', // A nice dark blue-grey for the shop counter
             scene: {
                 create: create
             }
@@ -39,63 +41,61 @@
         const game = new Phaser.Game(config);
 
         function create() {
-            // Let's grab the first Moji from your database
-            let firstMoji = mojiDatabase[0];
+            // 1. Pull the very first Moji from our database
+            const mojiData = myMojiDatabase[0];
 
-            // 1. Create a minimalist, fine-line card background
-            let cardBg = this.add.rectangle(0"MyMoji Store" is a fantastic name. It immediately gives the game a clear identity and suggests a fun, colorful, and collectible vibe. Working entirely within Codespaces and pushing directly to Pages is also the perfect lightweight workflow to keep your momentum going.
+            // 2. Create a Container to hold all the card parts
+            // We'll place it right in the middle of the screen (512, 384)
+            const card = this.add.container(512, 384);
 
-Since I am choosing the next move, we are going to build the **Data Foundation**. 
+            // 3. Build the card visuals
+            // Background: Crisp white with a thick dark border
+            const cardBg = this.add.rectangle(0, 0, 220, 320, 0xffffff);
+            cardBg.setStrokeStyle(6, 0x1a1a1a);
 
-You cannot open a booster pack, stock a shelf, or haggle with a customer if the game engine does not know what a "MyMoji" is. We need a central dictionary that holds the stats, value, and rarity of every item in the game.
+            // Image Placeholder: Light gray box where your Photoshop art will go
+            const imageBox = this.add.rectangle(0, -40, 180, 160, 0xe0e0e0);
+            imageBox.setStrokeStyle(3, 0xcccccc);
 
-### **1. Creating the MyMoji Database**
+            // Text Elements: Pulling dynamic data from mojiData
+            const nameText = this.add.text(0, -140, mojiData.name, { 
+                fontFamily: 'Arial', fontSize: '20px', color: '#000000', fontStyle: 'bold' 
+            }).setOrigin(0.5);
 
-In your Codespaces file tree, create a new folder named `js`, inside that create another folder named `data`, and finally create a file named `database.js`. 
+            const rarityText = this.add.text(0, 70, mojiData.rarity, { 
+                fontFamily: 'Arial', fontSize: '16px', color: '#7f8c8d' 
+            }).setOrigin(0.5);
 
-Here is the starter code. We are using a simple JavaScript array of objects, which makes it very easy to filter (e.g., finding all "Rare" cards) or pick a random item later.
-```javascript
-// File: js/data/database.js
+            const valueText = this.add.text(0, 110, '$' + mojiData.baseValue.toFixed(2), { 
+                fontFamily: 'Arial', fontSize: '24px', color: '#27ae60', fontStyle: 'bold' 
+            }).setOrigin(0.5);
 
-const myMojiDatabase = [
-    {
-        id: "moji_001",
-        name: "Classic Smile",
-        rarity: "Common",
-        baseValue: 1.50, // Market value in dollars
-        imageRef: "smile" // We will map this to your Photoshop exports later
-    },
-    {
-        id: "moji_002",
-        name: "Sweat Drop",
-        rarity: "Common",
-        baseValue: 1.25,
-        imageRef: "sweat"
-    },
-    {
-        id: "moji_003",
-        name: "Star Eyes",
-        rarity: "Rare",
-        baseValue: 15.00,
-        imageRef: "stars"
-    },
-    {
-        id: "moji_004",
-        name: "Melting Face",
-        rarity: "Epic",
-        baseValue: 85.00,
-        imageRef: "melt"
-    },
-    {
-        id: "moji_005",
-        name: "Golden Crown",
-        rarity: "Legendary",
-        baseValue: 500.00,
-        imageRef: "crown"
-    }
-];
+            // 4. Add all the parts into the container
+            card.add([cardBg, imageBox, nameText, rarityText, valueText]);
 
-// A helper function we will use later to find a card's data instantly
-function getMojiById(id) {
-    return myMojiDatabase.find(moji => moji.id === id);
-}
+            // 5. Make the container interactive
+            // We have to tell Phaser how big the "clickable" area is based on the background
+            card.setSize(220, 320);
+            card.setInteractive();
+            this.input.setDraggable(card);
+
+            // 6. The Drag Mechanics
+            this.input.on('drag', function (pointer, gameObject, dragX, dragY) {
+                gameObject.x = dragX;
+                gameObject.y = dragY;
+            });
+
+            // Polish: "Pick up" the card by scaling it up and bringing it to the front
+            this.input.on('dragstart', function (pointer, gameObject) {
+                gameObject.setScale(1.05);
+                this.children.bringToTop(gameObject); // Ensures it renders above other objects
+            }, this);
+
+            // Polish: "Put down" the card
+            this.input.on('dragend', function (pointer, gameObject) {
+                gameObject.setScale(1);
+            });
+        }
+    </script>
+</body>
+</html>
