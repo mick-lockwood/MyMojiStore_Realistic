@@ -9,7 +9,7 @@ const packDatabase = {
 let playerMoney = 50.00;
 let playerPacks = { "basic": 0, "premium": 0, "legendary": 0 };
 let playerInventory = {};
-let shoppingCart = { "basic": 0, "premium": 0, "legendary": 0 }; // Temporary state for the store
+let shoppingCart = { "basic": 0, "premium": 0, "legendary": 0 }; 
 
 myMojiDatabase.forEach(moji => playerInventory[moji.id] = 0);
 
@@ -18,11 +18,7 @@ function loadGame() {
     if (savedData) {
         let parsedData = JSON.parse(savedData);
         playerMoney = parsedData.money !== undefined ? parsedData.money : 50;
-        
-        if (parsedData.packs) {
-            playerPacks = { ...playerPacks, ...parsedData.packs };
-        }
-        
+        if (parsedData.packs) playerPacks = { ...playerPacks, ...parsedData.packs };
         for (let id in parsedData.inventory) {
             if (playerInventory[id] !== undefined) playerInventory[id] = parsedData.inventory[id];
         }
@@ -96,7 +92,6 @@ function spawnBoosterPack(scene, packId) {
     let startX = 252;    
     
     for (let i = 0; i < 3; i++) {
-        // Pass the specific weights of this pack tier
         let pulledMoji = pullCardWithWeights(packDef.weights);
         createDraggableCard(scene, startX + (i * spacing), 350, pulledMoji);
     }
@@ -161,13 +156,13 @@ function createStoreOverlay(scene) {
     const bg = scene.add.rectangle(0, 0, 900, 650, 0x1a1a1a).setStrokeStyle(4, 0xecf0f1).setInteractive(); 
     const title = scene.add.text(0, -290, 'MOJI STORE', { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     
+    // FIX: Attach text explicitly to the overlay container
     const closeBtn = scene.add.rectangle(350, -290, 120, 40, 0xe74c3c).setInteractive();
-    scene.add.text(350, -290, 'CLOSE', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const closeTxt = scene.add.text(350, -290, 'CLOSE', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     closeBtn.on('pointerdown', () => overlay.setVisible(false));
 
-    overlay.add([bg, title, closeBtn]);
+    overlay.add([bg, title, closeBtn, closeTxt]);
 
-    // Draw the Packs for Sale
     let packKeys = Object.keys(packDatabase);
     let startX = -250;
     
@@ -190,45 +185,41 @@ function createStoreOverlay(scene) {
         overlay.add(packCont);
     });
 
-    // Cart Summary UI
     const cartBg = scene.add.rectangle(0, 250, 800, 80, 0x2c3e50).setStrokeStyle(2, 0xffffff);
     overlay.cartTotalText = scene.add.text(-380, 250, 'TOTAL: $0.00', { fontSize: '24px', color: '#f1c40f', fontStyle: 'bold' }).setOrigin(0, 0.5);
     overlay.cartItemsText = scene.add.text(0, 250, 'Items: 0', { fontSize: '18px', color: '#fff' }).setOrigin(0.5);
     
+    // FIX: Attach text explicitly to the overlay container
     const clearBtn = scene.add.rectangle(200, 250, 100, 40, 0xe74c3c).setInteractive();
-    scene.add.text(200, 250, 'CLEAR', { fontSize: '16px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+    const clearTxt = scene.add.text(200, 250, 'CLEAR', { fontSize: '16px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
     clearBtn.on('pointerdown', () => {
         shoppingCart = { "basic": 0, "premium": 0, "legendary": 0 };
         updateStoreCart(scene, overlay);
     });
 
+    // FIX: Attach text explicitly to the overlay container
     const buyBtn = scene.add.rectangle(320, 250, 120, 50, 0x27ae60).setInteractive();
-    scene.add.text(320, 250, 'CHECKOUT', { fontSize: '18px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+    const buyTxt = scene.add.text(320, 250, 'CHECKOUT', { fontSize: '18px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
     
     buyBtn.on('pointerdown', () => {
         let cost = calculateCartTotal();
         if (cost > 0 && playerMoney >= cost) {
             playerMoney -= cost;
             scene.moneyText.setText('Bank: $' + playerMoney.toFixed(2));
-            
-            // Transfer cart to inventory
             for (let key in shoppingCart) playerPacks[key] += shoppingCart[key];
-            
-            // Clear cart & save
             shoppingCart = { "basic": 0, "premium": 0, "legendary": 0 };
             updateStoreCart(scene, overlay);
             saveGame();
             
-            // Visual success feedback
             scene.moneyText.setColor('#f1c40f'); 
             scene.time.delayedCall(300, () => scene.moneyText.setColor('#2ecc71'));
         } else if (cost > playerMoney) {
-            overlay.cartTotalText.setColor('#e74c3c'); // Flash red if broke
+            overlay.cartTotalText.setColor('#e74c3c'); 
             scene.time.delayedCall(300, () => overlay.cartTotalText.setColor('#f1c40f'));
         }
     });
 
-    overlay.add([cartBg, overlay.cartTotalText, overlay.cartItemsText, clearBtn, buyBtn]);
+    overlay.add([cartBg, overlay.cartTotalText, overlay.cartItemsText, clearBtn, clearTxt, buyBtn, buyTxt]);
     return overlay;
 }
 
@@ -240,7 +231,6 @@ function calculateCartTotal() {
 
 function updateStoreCart(scene, overlay) {
     overlay.cartTotalText.setText(`TOTAL: $${calculateCartTotal().toFixed(2)}`);
-    
     let summary = [];
     for (let key in shoppingCart) {
         if (shoppingCart[key] > 0) summary.push(`${shoppingCart[key]}x ${packDatabase[key].name}`);
@@ -256,10 +246,10 @@ function createInventoryOverlay(scene) {
     const title = scene.add.text(0, -290, 'MY PACKS', { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     
     const closeBtn = scene.add.rectangle(350, -290, 120, 40, 0xe74c3c).setInteractive();
-    scene.add.text(350, -290, 'CLOSE', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const closeTxt = scene.add.text(350, -290, 'CLOSE', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     closeBtn.on('pointerdown', () => overlay.setVisible(false));
 
-    overlay.add([bg, title, closeBtn]);
+    overlay.add([bg, title, closeBtn, closeTxt]);
     overlay.gridContainer = scene.add.container(0, 0); 
     overlay.add(overlay.gridContainer);
     
@@ -285,10 +275,10 @@ function renderPackInventory(scene, overlay) {
             let openTxt = scene.add.text(0, 130, 'TEAR OPEN', { fontSize: '16px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
             
             openBtn.on('pointerdown', () => {
-                playerPacks[key] -= 1; // Remove from inventory
+                playerPacks[key] -= 1; 
                 saveGame();
-                overlay.setVisible(false); // Close the menu
-                spawnBoosterPack(scene, key); // Spawn the specific pack tier
+                overlay.setVisible(false); 
+                spawnBoosterPack(scene, key); 
             });
             
             packCont.add([badgeBg, badgeTxt, openBtn, openTxt]);
@@ -303,15 +293,17 @@ function renderPackInventory(scene, overlay) {
     }
 }
 
-// --- BINDER VISUALS (From previous step) ---
+// --- UPDATED BINDER VISUALS & LOGIC ---
 function createBinderOverlay(scene) {
     const overlay = scene.add.container(512, 384).setVisible(false).setDepth(100); 
     const bg = scene.add.rectangle(0, 0, 900, 650, 0x1a1a1a).setStrokeStyle(4, 0xecf0f1).setInteractive(); 
     const title = scene.add.text(0, -290, 'MY COLLECTION', { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    
     const closeBtn = scene.add.rectangle(0, 300, 200, 40, 0xe74c3c).setInteractive();
-    scene.add.text(0, 300, 'CLOSE', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+    const closeTxt = scene.add.text(0, 300, 'CLOSE', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     closeBtn.on('pointerdown', () => overlay.setVisible(false));
-    overlay.add([bg, title, closeBtn]);
+    
+    overlay.add([bg, title, closeBtn, closeTxt]);
     
     overlay.currentCategory = 'Common';
     overlay.viewMode = 'Collection'; 
@@ -331,7 +323,7 @@ function createBinderOverlay(scene) {
     
     modeBtn.on('pointerdown', () => {
         overlay.viewMode = (overlay.viewMode === 'Collection') ? 'Doubles' : 'Collection';
-        modeText.setText(overlay.viewMode === 'Collection' ? 'VIEWING: MAIN COLLECTION (SAFE)' : 'VIEWING: DOUBLES (CLICK TO WITHDRAW)');
+        modeText.setText(overlay.viewMode === 'Collection' ? 'VIEWING: MAIN COLLECTION (CLICK TO WITHDRAW)' : 'VIEWING: DOUBLES (CLICK TO WITHDRAW)');
         modeBtn.setFillStyle(overlay.viewMode === 'Collection' ? 0xf39c12 : 0x8e44ad);
         renderBinderGrid(scene, overlay);
     });
@@ -347,31 +339,34 @@ function renderBinderGrid(scene, overlay) {
 
     filteredCards.forEach(moji => {
         let owned = playerInventory[moji.id];
-        let shouldDraw = false, withdrawableAmount = 0;
+        
+        // FIX: The core logic of when to show cards and badges
+        if (owned >= 1) {
+            let isDoublesMode = (overlay.viewMode === 'Doubles');
 
-        if (overlay.viewMode === 'Collection' && owned >= 1) shouldDraw = true; 
-        else if (overlay.viewMode === 'Doubles' && owned > 1) { shouldDraw = true; withdrawableAmount = owned - 1; }
+            // If we are looking at doubles, but we only have 1 copy, skip drawing it!
+            if (isDoublesMode && owned === 1) return;
 
-        if (shouldDraw) {
             let miniCard = scene.add.container(startX + (col * spacingX), startY);
             miniCard.add(createCardGraphic(scene, moji));
             miniCard.setScale(0.45); 
             
-            let displayCount = overlay.viewMode === 'Doubles' ? withdrawableAmount : owned;
-            let badgeBg = scene.add.circle(80, -130, 40, 0xe74c3c);
-            let badgeTxt = scene.add.text(80, -130, 'x' + displayCount, { fontSize: '40px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
-            miniCard.add([badgeBg, badgeTxt]);
-
-            if (overlay.viewMode === 'Doubles') {
-                miniCard.setSize(220, 320); 
-                miniCard.setInteractive({ cursor: 'pointer' });
-                miniCard.on('pointerdown', () => {
-                    playerInventory[moji.id] -= 1; 
-                    saveGame();
-                    createDraggableCard(scene, 512, 384, moji); 
-                    renderBinderGrid(scene, overlay); 
-                });
+            // Add Badge ONLY in Doubles mode to show extra copies
+            if (isDoublesMode) {
+                let badgeBg = scene.add.circle(80, -130, 40, 0xe74c3c);
+                let badgeTxt = scene.add.text(80, -130, 'x' + (owned - 1), { fontSize: '40px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+                miniCard.add([badgeBg, badgeTxt]);
             }
+
+            // Both Main Collection and Doubles can be clicked to withdraw a card
+            miniCard.setSize(220, 320); 
+            miniCard.setInteractive({ cursor: 'pointer' });
+            miniCard.on('pointerdown', () => {
+                playerInventory[moji.id] -= 1; 
+                saveGame();
+                createDraggableCard(scene, 512, 384, moji); 
+                renderBinderGrid(scene, overlay); 
+            });
 
             overlay.gridContainer.add(miniCard);
             col++;
