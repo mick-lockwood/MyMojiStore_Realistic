@@ -105,6 +105,59 @@
             // Fallback just in case
             return myMojiDatabase[0]; 
         }
+
+        // --- NEW SYSTEMS ---
+
+        // 1. The Spawner: Now uses our weighted RNG
+        function spawnBoosterPack(scene) {
+            const spacing = 260; 
+            let startX = 252;    
+
+            for (let i = 0; i < 3; i++) {
+                // We changed this line to use our custom math function!
+                let pulledMoji = pullCardWithWeights();
+                
+                createCard(scene, startX + (i * spacing), 350, pulledMoji);
+            }
+        }
+
+        // 2. The Weighted RNG Math
+        function pullCardWithWeights() {
+            // Define the drop rates (These act as percentages: 70%, 20%, 9%, 1%)
+            const rarityWeights = {
+                "Common": 70,
+                "Rare": 20,
+                "Epic": 9,
+                "Legendary": 1
+            };
+
+            // Calculate the total "weight" of all cards in the database combined
+            let totalWeight = 0;
+            for (let i = 0; i < myMojiDatabase.length; i++) {
+                let rarity = myMojiDatabase[i].rarity;
+                totalWeight += rarityWeights[rarity];
+            }
+
+            // Pick a random number between 0 and totalWeight
+            let randomNum = Math.random() * totalWeight;
+
+            // Iterate through the database and subtract weights until we hit 0
+            for (let i = 0; i < myMojiDatabase.length; i++) {
+                let rarity = myMojiDatabase[i].rarity;
+                randomNum -= rarityWeights[rarity];
+                
+                // The card that pushes the number below 0 is our winner!
+                if (randomNum <= 0) {
+                    return myMojiDatabase[i];
+                }
+            }
+            
+            // Fallback just in case
+            return myMojiDatabase[0]; 
+        }
+
+        // 3. The Card Factory: (Keep your existing createCard function exactly as it is here)
+        function createCard(scene, x, y, mojiData) {
             const card = scene.add.container(x, y);
 
             const cardBg = scene.add.rectangle(0, 0, 220, 320, 0xffffff);
