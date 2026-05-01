@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCG Shop Simulator</title>
+    <!-- Load Phaser directly from the CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212; /* Clean, dark minimalist background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #ffffff;
+            font-family: sans-serif;
+        }
+        #game-container {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container"></div>
+
+    <script>
+        // Game Configuration
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            backgroundColor: '#1e1e1e', // Dark mode canvas
+            parent: 'game-container',
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        function preload() {
+            // Later, you'll load your card sprites and NPC animations here
+        }
+
+        function create() {
+            // Add some starting text
+            this.add.text(400, 50, 'Card Shop Open for Business', { 
+                fontSize: '24px', 
+                fill: '#ffffff' 
+            }).setOrigin(0.5);
+
+            // Let's create a placeholder "Card" we can drag around
+            let card = this.add.rectangle(400, 300, 100, 140, 0x444444).setStrokeStyle(2, 0x888888);
+            this.add.text(400, 300, 'Drag Me', { fill: '#fff' }).setOrigin(0.5);
+
+            // Make the card interactive and draggable
+            card.setInteractive();
+            this.input.setDraggable(card);
+
+            this.input.on('drag', function (pointer, gameObject, dragX, dragY) {
+                gameObject.x = dragX;
+                gameObject.y = dragY;
+            });
+        }
+
+        function update() {
+            // Game logic loop (e.g., checking if an NPC has walked in)
+        }
+    </script>
+</body>
+</html>
