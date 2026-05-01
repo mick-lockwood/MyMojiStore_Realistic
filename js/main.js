@@ -17,10 +17,10 @@ function loadGame() {
     let savedData = localStorage.getItem('myMojiSave');
     if (savedData) {
         let parsedData = JSON.parse(savedData);
-        playerMoney = parsedData.money !== undefined ? parsedData.money : 50;
+        playerMoney = parsedData.money !== undefined ? Number(parsedData.money) : 50;
         if (parsedData.packs) playerPacks = { ...playerPacks, ...parsedData.packs };
         for (let id in parsedData.inventory) {
-            if (playerInventory[id] !== undefined) playerInventory[id] = parsedData.inventory[id];
+            if (playerInventory[id] !== undefined) playerInventory[id] = Number(parsedData.inventory[id]);
         }
     }
 }
@@ -86,6 +86,21 @@ function create() {
 
 // --- CORE MECHANICS ---
 
+// NEW: Visual feedback for dropping cards
+function showFloatingText(scene, x, y, message, colorHex) {
+    let txt = scene.add.text(x, y, message, { 
+        fontFamily: 'Arial', fontSize: '22px', color: colorHex, fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 
+    }).setOrigin(0.5).setDepth(200);
+
+    scene.tweens.add({
+        targets: txt,
+        y: y - 60,
+        alpha: 0,
+        duration: 1200,
+        onComplete: () => txt.destroy()
+    });
+}
+
 function spawnBoosterPack(scene, packId) {
     const packDef = packDatabase[packId];
     const spacing = 260; 
@@ -135,16 +150,25 @@ function createDraggableCard(scene, x, y, mojiData) {
 
     card.on('drag', function (p, dragX, dragY) { this.x = dragX; this.y = dragY; });
     card.on('dragstart', function () { this.setScale(1.05); this.setDepth(50); });
+    
     card.on('dragend', function () {
-        this.setScale(1); this.setDepth(10); 
+        this.setScale(1); 
+        this.setDepth(10); 
         let bounds = this.getBounds();
         
         if (Phaser.Geom.Intersects.RectangleToRectangle(bounds, scene.binderZone.getBounds())) {
-            playerInventory[mojiData.id] += 1; saveGame(); this.destroy(); 
-        } else if (Phaser.Geom.Intersects.RectangleToRectangle(bounds, scene.sellZone.getBounds())) {
-            playerMoney += mojiData.baseValue; 
+            // FIX: Enforce numbers to prevent local storage string bugs
+            playerInventory[mojiData.id] = Number(playerInventory[mojiData.id]) + 1; 
+            saveGame(); 
+            showFloatingText(scene, this.x, this.y, 'SAVED!', '#9b59b6');
+            this.destroy(); 
+        } 
+        else if (Phaser.Geom.Intersects.RectangleToRectangle(bounds, scene.sellZone.getBounds())) {
+            playerMoney += Number(mojiData.baseValue); 
             scene.moneyText.setText('Bank: $' + playerMoney.toFixed(2));
-            saveGame(); this.destroy(); 
+            saveGame(); 
+            showFloatingText(scene, this.x, this.y, 'SOLD!', '#e74c3c');
+            this.destroy(); 
         }
     });
 }
@@ -156,7 +180,6 @@ function createStoreOverlay(scene) {
     const bg = scene.add.rectangle(0, 0, 900, 650, 0x1a1a1a).setStrokeStyle(4, 0xecf0f1).setInteractive(); 
     const title = scene.add.text(0, -290, 'MOJI STORE', { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     
-    // FIX: Attach text explicitly to the overlay container
     const closeBtn = scene.add.rectangle(350, -290, 120, 40, 0xe74c3c).setInteractive();
     const closeTxt = scene.add.text(350, -290, 'CLOSE', { fontFamily: 'Arial', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     closeBtn.on('pointerdown', () => overlay.setVisible(false));
@@ -168,7 +191,6 @@ function createStoreOverlay(scene) {
     
     packKeys.forEach((key, index) => {
         let def = packDatabase[key];
-        
         let packCont = scene.add.container(startX + (index * 250), -50);
         packCont.add(createPackGraphic(scene, key));
         
@@ -189,7 +211,6 @@ function createStoreOverlay(scene) {
     overlay.cartTotalText = scene.add.text(-380, 250, 'TOTAL: $0.00', { fontSize: '24px', color: '#f1c40f', fontStyle: 'bold' }).setOrigin(0, 0.5);
     overlay.cartItemsText = scene.add.text(0, 250, 'Items: 0', { fontSize: '18px', color: '#fff' }).setOrigin(0.5);
     
-    // FIX: Attach text explicitly to the overlay container
     const clearBtn = scene.add.rectangle(200, 250, 100, 40, 0xe74c3c).setInteractive();
     const clearTxt = scene.add.text(200, 250, 'CLEAR', { fontSize: '16px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
     clearBtn.on('pointerdown', () => {
@@ -197,7 +218,6 @@ function createStoreOverlay(scene) {
         updateStoreCart(scene, overlay);
     });
 
-    // FIX: Attach text explicitly to the overlay container
     const buyBtn = scene.add.rectangle(320, 250, 120, 50, 0x27ae60).setInteractive();
     const buyTxt = scene.add.text(320, 250, 'CHECKOUT', { fontSize: '18px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
     
@@ -210,7 +230,6 @@ function createStoreOverlay(scene) {
             shoppingCart = { "basic": 0, "premium": 0, "legendary": 0 };
             updateStoreCart(scene, overlay);
             saveGame();
-            
             scene.moneyText.setColor('#f1c40f'); 
             scene.time.delayedCall(300, () => scene.moneyText.setColor('#2ecc71'));
         } else if (cost > playerMoney) {
@@ -310,12 +329,20 @@ function createBinderOverlay(scene) {
     overlay.gridContainer = scene.add.container(0, 0); 
     overlay.add(overlay.gridContainer);
 
+    // FIX: Store tab objects so we can update their text/colors dynamically
+    overlay.tabs = [];
     const categories = ['Common', 'Rare', 'Epic', 'Legendary'];
     let tabX = -300;
+    
     categories.forEach(cat => {
         let tab = scene.add.text(tabX, -240, cat.toUpperCase(), { fontSize: '18px', color: '#7f8c8d', fontStyle: 'bold' }).setInteractive().setOrigin(0.5);
-        tab.on('pointerdown', () => { overlay.currentCategory = cat; renderBinderGrid(scene, overlay); });
-        overlay.add(tab); tabX += 200;
+        tab.on('pointerdown', () => { 
+            overlay.currentCategory = cat; 
+            renderBinderGrid(scene, overlay); 
+        });
+        overlay.tabs.push({ textObj: tab, category: cat });
+        overlay.add(tab); 
+        tabX += 200;
     });
 
     const modeBtn = scene.add.rectangle(0, 240, 300, 40, 0xf39c12).setInteractive();
@@ -334,35 +361,41 @@ function createBinderOverlay(scene) {
 
 function renderBinderGrid(scene, overlay) {
     overlay.gridContainer.removeAll(true);
+    
+    // FIX: Update Tab Counters and Colors so the player knows where their cards are!
+    overlay.tabs.forEach(tab => {
+        let countInTab = myMojiDatabase.filter(m => m.rarity === tab.category).reduce((sum, m) => sum + Number(playerInventory[m.id]), 0);
+        tab.textObj.setText(`${tab.category.toUpperCase()} (${countInTab})`);
+        tab.textObj.setColor(tab.category === overlay.currentCategory ? '#ffffff' : '#7f8c8d');
+    });
+
     let filteredCards = myMojiDatabase.filter(m => m.rarity === overlay.currentCategory);
     let startX = -320, startY = -120, col = 0, spacingX = 160, spacingY = 220;
 
     filteredCards.forEach(moji => {
-        let owned = playerInventory[moji.id];
+        let owned = Number(playerInventory[moji.id]);
         
-        // FIX: The core logic of when to show cards and badges
         if (owned >= 1) {
             let isDoublesMode = (overlay.viewMode === 'Doubles');
 
-            // If we are looking at doubles, but we only have 1 copy, skip drawing it!
+            // Skip drawing if we are in doubles mode but only own 1 copy
             if (isDoublesMode && owned === 1) return;
 
             let miniCard = scene.add.container(startX + (col * spacingX), startY);
             miniCard.add(createCardGraphic(scene, moji));
             miniCard.setScale(0.45); 
             
-            // Add Badge ONLY in Doubles mode to show extra copies
+            // Add Badge ONLY in Doubles mode
             if (isDoublesMode) {
                 let badgeBg = scene.add.circle(80, -130, 40, 0xe74c3c);
                 let badgeTxt = scene.add.text(80, -130, 'x' + (owned - 1), { fontSize: '40px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
                 miniCard.add([badgeBg, badgeTxt]);
             }
 
-            // Both Main Collection and Doubles can be clicked to withdraw a card
             miniCard.setSize(220, 320); 
             miniCard.setInteractive({ cursor: 'pointer' });
             miniCard.on('pointerdown', () => {
-                playerInventory[moji.id] -= 1; 
+                playerInventory[moji.id] = Number(playerInventory[moji.id]) - 1; 
                 saveGame();
                 createDraggableCard(scene, 512, 384, moji); 
                 renderBinderGrid(scene, overlay); 
