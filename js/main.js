@@ -1,12 +1,43 @@
-// --- GLOBAL STATE ---
+// --- GLOBAL STATE & LOCAL STORAGE ---
 let playerMoney = 50.00;
 let playerInventory = {};
 
-// Initialize inventory
+// 1. Initialize default inventory based on database
 myMojiDatabase.forEach(moji => {
     playerInventory[moji.id] = 0;
 });
 
+// 2. Load Save Data (If it exists)
+function loadGame() {
+    let savedData = localStorage.getItem('myMojiSave');
+    if (savedData) {
+        let parsedData = JSON.parse(savedData);
+        playerMoney = parsedData.money;
+        
+        // Carefully merge saved inventory into our default structure
+        for (let id in parsedData.inventory) {
+            if (playerInventory[id] !== undefined) {
+                playerInventory[id] = parsedData.inventory[id];
+            }
+        }
+        console.log("Save file loaded successfully!");
+    }
+}
+
+// 3. Save Game Logic
+function saveGame() {
+    let dataToSave = {
+        money: playerMoney,
+        inventory: playerInventory
+    };
+    localStorage.setItem('myMojiSave', JSON.stringify(dataToSave));
+    console.log("Game Saved.");
+}
+
+// Run the load function immediately before the game starts
+loadGame();
+
+// --- PHASER ENGINE SETUP ---
 const config = {
     type: Phaser.AUTO,
     width: 1024,
@@ -19,29 +50,37 @@ const config = {
 const game = new Phaser.Game(config);
 
 function create() {
-    const scene = this; // Save a reference to the scene
+    const scene = this; 
 
-    const moneyText = scene.add.text(20, 20, 'Bank: $' + playerMoney.toFixed(2), { 
+    // --- UI: BANK & MONEY ---
+    scene.moneyText = scene.add.text(20, 20, 'Bank: $' + playerMoney.toFixed(2), { 
         fontFamily: 'Arial', fontSize: '28px', color: '#2ecc71', fontStyle: 'bold' 
     });
-    
-    // Attach moneyText to scene so we can update it from anywhere
-    scene.moneyText = moneyText; 
 
-    // --- UI: BINDER DROP ZONE ---
-    scene.binderZone = scene.add.rectangle(150, 680, 240, 100, 0x8e44ad);
-    scene.binderZone.setStrokeStyle(4, 0x1a1a1a);
+    // NEW --- UI: RESET GAME BUTTON ---
+    const resetBtn = scene.add.text(880, 20, 'RESET GAME', { 
+        fontFamily: 'Arial', fontSize: '16px', color: '#e74c3c', fontStyle: 'bold' 
+    }).setInteractive();
+
+    resetBtn.on('pointerover', () => resetBtn.setColor('#c0392b'));
+    resetBtn.on('pointerout', () => resetBtn.setColor('#e74c3c'));
+    resetBtn.on('pointerdown', () => {
+        // Wipe the save file and refresh the browser page
+        if (confirm("Are you sure you want to delete your save and start over?")) {
+            localStorage.removeItem('myMojiSave');
+            location.reload(); 
+        }
+    });
+
+    // --- UI: DROP ZONES ---
+    scene.binderZone = scene.add.rectangle(150, 680, 240, 100, 0x8e44ad).setStrokeStyle(4, 0x1a1a1a);
     scene.add.text(150, 680, 'DROP IN BINDER', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
 
-    // NEW --- UI: SELL BOX DROP ZONE ---
-    // Placed above the View Binder button on the right side
-    scene.sellZone = scene.add.rectangle(874, 580, 240, 80, 0xc0392b); 
-    scene.sellZone.setStrokeStyle(4, 0x1a1a1a);
+    scene.sellZone = scene.add.rectangle(874, 580, 240, 80, 0xc0392b).setStrokeStyle(4, 0x1a1a1a);
     scene.add.text(874, 580, 'SELL FOR CASH', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
 
     // --- UI: OPEN PACK BUTTON ---
-    const packButton = scene.add.rectangle(512, 680, 240, 60, 0x27ae60).setInteractive();
-    packButton.setStrokeStyle(4, 0x1a1a1a);
+    const packButton = scene.add.rectangle(512, 680, 240, 60, 0x27ae60).setInteractive().setStrokeStyle(4, 0x1a1a1a);
     scene.add.text(512, 680, 'OPEN PACK ($5)', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
 
     packButton.on('pointerdown', () => {
@@ -49,21 +88,19 @@ function create() {
         if (playerMoney >= 5.00) {
             playerMoney -= 5.00;
             scene.moneyText.setText('Bank: $' + playerMoney.toFixed(2));
+            saveGame(); // Save immediately when money is spent
             spawnBoosterPack(scene); 
         } else {
             scene.moneyText.setColor('#e74c3c');
             scene.time.delayedCall(300, () => scene.moneyText.setColor('#2ecc71'));
         }
     });
-
     packButton.on('pointerup', () => packButton.setScale(1));
 
     // --- UI: VIEW BINDER BUTTON ---
-    const viewBinderBtn = scene.add.rectangle(874, 680, 240, 60, 0x34495e).setInteractive();
-    viewBinderBtn.setStrokeStyle(4, 0x1a1a1a);
+    const viewBinderBtn = scene.add.rectangle(874, 680, 240, 60, 0x34495e).setInteractive().setStrokeStyle(4, 0x1a1a1a);
     scene.add.text(874, 680, 'VIEW BINDER', { fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
 
-    // Create the overlay
     const binderOverlay = createBinderOverlay(scene);
 
     viewBinderBtn.on('pointerdown', () => {
@@ -87,7 +124,6 @@ function pullCardWithWeights() {
     const rarityWeights = { "Common": 70, "Rare": 20, "Epic": 9, "Legendary": 1 };
     let totalWeight = 0;
     for (let i = 0; i < myMojiDatabase.length; i++) totalWeight += rarityWeights[myMojiDatabase[i].rarity];
-    
     let randomNum = Math.random() * totalWeight;
     for (let i = 0; i < myMojiDatabase.length; i++) {
         randomNum -= rarityWeights[myMojiDatabase[i].rarity];
@@ -121,7 +157,6 @@ function createCard(scene, x, y, mojiData) {
         this.setDepth(50); 
     });
 
-    // NEW --- UPDATED COLLISION LOGIC ---
     card.on('dragend', function () {
         this.setScale(1);
         this.setDepth(10); 
@@ -133,18 +168,17 @@ function createCard(scene, x, y, mojiData) {
         // 1. Check if dropped in the Binder
         if (Phaser.Geom.Intersects.RectangleToRectangle(cardBounds, binderBounds)) {
             playerInventory[mojiData.id] += 1; 
+            saveGame(); // Save when a card is stashed
             this.destroy(); 
         }
         // 2. Check if dropped in the Sell Box
         else if (Phaser.Geom.Intersects.RectangleToRectangle(cardBounds, sellBounds)) {
-            // Add the base value to the bank
             playerMoney += mojiData.baseValue; 
             scene.moneyText.setText('Bank: $' + playerMoney.toFixed(2));
-            
-            // Polish: Flash the bank text gold to feel rewarding
             scene.moneyText.setColor('#f1c40f'); 
             scene.time.delayedCall(300, () => scene.moneyText.setColor('#2ecc71'));
             
+            saveGame(); // Save when a card is sold
             this.destroy(); 
         }
     });
@@ -156,8 +190,7 @@ function createBinderOverlay(scene) {
     const overlay = scene.add.container(512, 384).setVisible(false);
     overlay.setDepth(100); 
 
-    const bg = scene.add.rectangle(0, 0, 800, 600, 0x1a1a1a).setStrokeStyle(4, 0xecf0f1);
-    bg.setInteractive(); 
+    const bg = scene.add.rectangle(0, 0, 800, 600, 0x1a1a1a).setStrokeStyle(4, 0xecf0f1).setInteractive(); 
 
     const title = scene.add.text(0, -250, 'MY COLLECTION', { fontFamily: 'Arial', fontSize: '32px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     
@@ -167,7 +200,6 @@ function createBinderOverlay(scene) {
     closeBtn.on('pointerdown', () => overlay.setVisible(false));
 
     overlay.add([bg, title, closeBtn, closeText]);
-    
     overlay.listItems = []; 
     return overlay;
 }
@@ -181,7 +213,6 @@ function updateBinderView(scene, overlay) {
     myMojiDatabase.forEach(moji => {
         let count = playerInventory[moji.id];
         if (count > 0) {
-            
             let rowText = scene.add.text(-350, yPos, `${moji.name} (x${count})  >>  [ CLICK TO WITHDRAW ]`, { 
                 fontFamily: 'Courier New', fontSize: '18px', color: '#f39c12' 
             }).setInteractive();
@@ -191,13 +222,13 @@ function updateBinderView(scene, overlay) {
 
             rowText.on('pointerdown', () => {
                 playerInventory[moji.id] -= 1; 
+                saveGame(); // Save when a card is withdrawn
                 createCard(scene, 512, 384, moji); 
                 updateBinderView(scene, overlay); 
             });
 
             overlay.add(rowText);
             overlay.listItems.push(rowText);
-            
             yPos += 30; 
         }
     });
