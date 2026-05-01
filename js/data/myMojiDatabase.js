@@ -1,4 +1,4 @@
-const mojiDatabase = [
+const myMojiDatabase = [
     {
         id: "m_001",
         name: "Classic Smiley",
