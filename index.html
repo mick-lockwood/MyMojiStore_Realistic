@@ -58,22 +58,53 @@
 
         // --- NEW SYSTEMS ---
 
-        // 1. The Spawner: Grabs 3 random cards and spaces them out
+        // 1. The Spawner: Now uses our weighted RNG
         function spawnBoosterPack(scene) {
-            const spacing = 260; // Distance between cards
-            let startX = 252;    // X coordinate for the first card
+            const spacing = 260; 
+            let startX = 252;    
 
             for (let i = 0; i < 3; i++) {
-                // Grab a completely random Moji from your database array
-                let randomMoji = Phaser.Utils.Array.GetRandom(myMojiDatabase);
+                // We changed this line to use our custom math function!
+                let pulledMoji = pullCardWithWeights();
                 
-                // Draw the card on the screen, shifting it right each loop
-                createCard(scene, startX + (i * spacing), 350, randomMoji);
+                createCard(scene, startX + (i * spacing), 350, pulledMoji);
             }
         }
 
-        // 2. The Card Factory: Our old code, now wrapped in a reusable function
-        function createCard(scene, x, y, mojiData) {
+        // 2. The Weighted RNG Math
+        function pullCardWithWeights() {
+            // Define the drop rates (These act as percentages: 70%, 20%, 9%, 1%)
+            const rarityWeights = {
+                "Common": 70,
+                "Rare": 20,
+                "Epic": 9,
+                "Legendary": 1
+            };
+
+            // Calculate the total "weight" of all cards in the database combined
+            let totalWeight = 0;
+            for (let i = 0; i < myMojiDatabase.length; i++) {
+                let rarity = myMojiDatabase[i].rarity;
+                totalWeight += rarityWeights[rarity];
+            }
+
+            // Pick a random number between 0 and totalWeight
+            let randomNum = Math.random() * totalWeight;
+
+            // Iterate through the database and subtract weights until we hit 0
+            for (let i = 0; i < myMojiDatabase.length; i++) {
+                let rarity = myMojiDatabase[i].rarity;
+                randomNum -= rarityWeights[rarity];
+                
+                // The card that pushes the number below 0 is our winner!
+                if (randomNum <= 0) {
+                    return myMojiDatabase[i];
+                }
+            }
+            
+            // Fallback just in case
+            return myMojiDatabase[0]; 
+        }
             const card = scene.add.container(x, y);
 
             const cardBg = scene.add.rectangle(0, 0, 220, 320, 0xffffff);
