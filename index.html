@@ -4,12 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MyMoji Store</title>
-    <!-- Load Phaser -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js"></script>
-    
-    <!-- Load our database -->
     <script src="js/data/myMojiDatabase.js"></script>
-    
     <style>
         body {
             margin: 0;
@@ -32,7 +28,7 @@
             type: Phaser.AUTO,
             width: 1024,
             height: 768,
-            backgroundColor: '#2c3e50', // A nice dark blue-grey for the shop counter
+            backgroundColor: '#2c3e50', 
             scene: {
                 create: create
             }
@@ -41,58 +37,80 @@
         const game = new Phaser.Game(config);
 
         function create() {
-            // 1. Pull the very first Moji from our database
-            const mojiData = myMojiDatabase[0];
+            // Create a simple "Open Pack" button at the bottom of the screen
+            const packButton = this.add.rectangle(512, 680, 240, 60, 0x27ae60).setInteractive();
+            packButton.setStrokeStyle(4, 0x1a1a1a);
+            
+            const btnText = this.add.text(512, 680, 'OPEN PACK ($5)', { 
+                fontFamily: 'Arial', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' 
+            }).setOrigin(0.5);
 
-            // 2. Create a Container to hold all the card parts
-            // We'll place it right in the middle of the screen (512, 384)
-            const card = this.add.container(512, 384);
+            // Make the button do something when clicked
+            packButton.on('pointerdown', () => {
+                packButton.setScale(0.95); // Squish effect
+                spawnBoosterPack(this);
+            });
 
-            // 3. Build the card visuals
-            // Background: Crisp white with a thick dark border
-            const cardBg = this.add.rectangle(0, 0, 220, 320, 0xffffff);
+            packButton.on('pointerup', () => {
+                packButton.setScale(1); // Un-squish
+            });
+        }
+
+        // --- NEW SYSTEMS ---
+
+        // 1. The Spawner: Grabs 3 random cards and spaces them out
+        function spawnBoosterPack(scene) {
+            const spacing = 260; // Distance between cards
+            let startX = 252;    // X coordinate for the first card
+
+            for (let i = 0; i < 3; i++) {
+                // Grab a completely random Moji from your database array
+                let randomMoji = Phaser.Utils.Array.GetRandom(myMojiDatabase);
+                
+                // Draw the card on the screen, shifting it right each loop
+                createCard(scene, startX + (i * spacing), 350, randomMoji);
+            }
+        }
+
+        // 2. The Card Factory: Our old code, now wrapped in a reusable function
+        function createCard(scene, x, y, mojiData) {
+            const card = scene.add.container(x, y);
+
+            const cardBg = scene.add.rectangle(0, 0, 220, 320, 0xffffff);
             cardBg.setStrokeStyle(6, 0x1a1a1a);
 
-            // Image Placeholder: Light gray box where your Photoshop art will go
-            const imageBox = this.add.rectangle(0, -40, 180, 160, 0xe0e0e0);
+            const imageBox = scene.add.rectangle(0, -40, 180, 160, 0xe0e0e0);
             imageBox.setStrokeStyle(3, 0xcccccc);
 
-            // Text Elements: Pulling dynamic data from mojiData
-            const nameText = this.add.text(0, -140, mojiData.name, { 
+            const nameText = scene.add.text(0, -140, mojiData.name, { 
                 fontFamily: 'Arial', fontSize: '20px', color: '#000000', fontStyle: 'bold' 
             }).setOrigin(0.5);
 
-            const rarityText = this.add.text(0, 70, mojiData.rarity, { 
+            const rarityText = scene.add.text(0, 70, mojiData.rarity, { 
                 fontFamily: 'Arial', fontSize: '16px', color: '#7f8c8d' 
             }).setOrigin(0.5);
 
-            const valueText = this.add.text(0, 110, '$' + mojiData.baseValue.toFixed(2), { 
+            const valueText = scene.add.text(0, 110, '$' + mojiData.baseValue.toFixed(2), { 
                 fontFamily: 'Arial', fontSize: '24px', color: '#27ae60', fontStyle: 'bold' 
             }).setOrigin(0.5);
 
-            // 4. Add all the parts into the container
             card.add([cardBg, imageBox, nameText, rarityText, valueText]);
 
-            // 5. Make the container interactive
-            // We have to tell Phaser how big the "clickable" area is based on the background
             card.setSize(220, 320);
             card.setInteractive();
-            this.input.setDraggable(card);
+            scene.input.setDraggable(card);
 
-            // 6. The Drag Mechanics
-            this.input.on('drag', function (pointer, gameObject, dragX, dragY) {
+            scene.input.on('drag', function (pointer, gameObject, dragX, dragY) {
                 gameObject.x = dragX;
                 gameObject.y = dragY;
             });
 
-            // Polish: "Pick up" the card by scaling it up and bringing it to the front
-            this.input.on('dragstart', function (pointer, gameObject) {
+            scene.input.on('dragstart', function (pointer, gameObject) {
                 gameObject.setScale(1.05);
-                this.children.bringToTop(gameObject); // Ensures it renders above other objects
-            }, this);
+                scene.children.bringToTop(gameObject);
+            });
 
-            // Polish: "Put down" the card
-            this.input.on('dragend', function (pointer, gameObject) {
+            scene.input.on('dragend', function (pointer, gameObject) {
                 gameObject.setScale(1);
             });
         }
