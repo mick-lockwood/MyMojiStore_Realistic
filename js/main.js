@@ -69,8 +69,6 @@ function preload() {
     scene.load.image('pack_basic', 'assets/pack_basic.png');
     scene.load.image('pack_premium', 'assets/pack_premium.png');
     scene.load.image('pack_legendary', 'assets/pack_legendary.png');
-    
-    // THE NEW BINDER GRAPHIC
     scene.load.image('binder_open', 'assets/binder_open.png'); 
 }
 
@@ -370,7 +368,7 @@ function setupBinder(scene, overlay) {
         overlay.binderContainer.removeAll(true);
         
         // 1. Draw the new Binder Graphic in the background (scaled to fit)
-        const binderImg = scene.add.image(512, 384, 'binder_open').setScale(0.68);
+        const binderImg = scene.add.image(512, 384, 'binder_open').setScale(1);
         overlay.binderContainer.add(binderImg);
         
         // Hide standard overlay panel/title so the graphic shines
