@@ -105,5 +105,39 @@ function createJuicyButton(scene, x, y, text, onClick, color = 0x2980b9) {
     });
     container.on('pointerup', () => container.setScale(1.1));
 
+    // --- OVERLAY MENU FACTORY ---
+// Creates a simple full-screen popup menu
+function createOverlay(scene, titleText) {
+    const container = scene.add.container(0, 0);
+    
+    // Semi-transparent black background covering the whole screen
+    const bg = scene.add.rectangle(512, 384, 1024, 768, 0x000000, 0.9);
+    bg.setInteractive(); // This blocks clicks from passing through to the table
+    
+    // The main menu panel
+    const panel = scene.add.rectangle(512, 384, 800, 600, 0x2c3e50).setStrokeStyle(4, 0xecf0f1);
+    
+    // Title text
+    const title = scene.add.text(512, 150, titleText, { 
+        fontFamily: 'Courier New', fontSize: '40px', color: '#f1c40f', fontStyle: 'bold' 
+    }).setOrigin(0.5);
+    
+    // Close Button
+    const closeBtn = createJuicyButton(scene, 512, 600, 'CLOSE', () => {
+        container.setVisible(false);
+    }, 0xe74c3c);
+    
+    // Add everything to the container
+    container.add([bg, panel, title, closeBtn]);
+    
+    // Hide it by default
+    container.setVisible(false);
+    
+    // Make sure it draws on top of everything else
+    container.setDepth(100); 
+    
+    return container;
+}
+
     return container;
 }
