@@ -402,11 +402,11 @@ function setupBinder(scene, overlay) {
 
         // 4. DRAW THE 9x2 SPREAD GRID
         // These coordinates are tuned to align with a standard centered binder graphic
-        let startX = 205; 
-        let startY = 195; 
-        let spacingX = 125; 
-        let spacingY = 155; 
-        let spineGap = 115; // The gap to jump over the middle rings
+        let startX = 220;    // Pushed right slightly
+        let startY = 285;    // Pushed down significantly into the first sleeve
+        let spacingX = 118;  // Distance between columns on the same page
+        let spacingY = 155;  // Distance between rows (adjust this next if the 2nd row is off!)
+        let spineGap = 85;   // Extra distance added only when jumping to the right page
 
         let col = 0;
         let row = 0;
