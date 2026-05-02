@@ -57,7 +57,7 @@ function create() {
     }).setOrigin(0, 0.5);
 
     // --- THE DASHBOARD ---
-    const dashBg = scene.add.rectangle(512, 700, 1024, 136, 0x111111).setStrokeStyle(4, 0x333333);
+    // const dashBg = scene.add.rectangle(512, 700, 1024, 136, 0x111111).setStrokeStyle(4, 0x333333);
 
     // Left: Binder Drop Zone
     scene.binderZone = scene.add.image(120, 700, 'zone_binder').setInteractive();
