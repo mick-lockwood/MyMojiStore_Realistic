@@ -152,5 +152,3 @@ function createOverlay(scene, titleText) {
     
     return container;
 }
-    return container;
-}
