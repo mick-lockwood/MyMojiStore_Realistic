@@ -302,9 +302,9 @@ function setupInventory(scene, overlay) {
     };
 }
 
-// RESTORED: MULTIPLE PAGES IN BINDER
+// RESTORED: MULTIPLE PAGES IN BINDER + TAKE OUT FEATURE
 function setupBinder(scene, overlay) {
-    overlay.currentTab = 'collection'; // Tracks if we are looking at Collection or Doubles
+    overlay.currentTab = 'collection'; 
 
     if(!overlay.binderContainer) {
         overlay.binderContainer = scene.add.container(0,0);
@@ -351,7 +351,20 @@ function setupBinder(scene, overlay) {
                 const nameText = scene.add.text(x, y + 60, moji.name, { fontFamily: 'Arial', fontSize: '14px', color: '#000', fontStyle: 'bold' }).setOrigin(0.5);
                 const qtyText = scene.add.text(x, y + 80, `x${qtyToShow}`, { fontFamily: 'Courier New', fontSize: '18px', color: '#8e44ad', fontStyle: 'bold' }).setOrigin(0.5);
                 
-                overlay.binderContainer.add([cardBg, nameText, qtyText]);
+                // NEW: Take Out Button
+                const takeBtn = createJuicyButton(scene, x, y + 115, 'TAKE OUT', () => {
+                    // 1. Remove from inventory
+                    playerInventory[moji.id]--;
+                    
+                    // 2. Close the menu so the player can see the table
+                    overlay.setVisible(false);
+                    
+                    // 3. Spawn the card in the center of the table (index 1 is the middle slot)
+                    spawnCardOnTable(scene, moji, 1);
+                }, 0xe74c3c); // Red button so it stands out
+                takeBtn.setScale(0.7); // Shrink it a bit so it fits nicely under the card
+                
+                overlay.binderContainer.add([cardBg, nameText, qtyText, takeBtn]);
                 col++;
                 if (col >= 4) { col = 0; row++; }
             }
