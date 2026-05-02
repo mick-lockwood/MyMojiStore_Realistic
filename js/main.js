@@ -426,7 +426,7 @@ function setupBinder(scene, overlay) {
                 let y = startY + (row * spacingY);
                 
                 // Draw the Mini Card
-                const cardBg = scene.add.image(x, y, 'card_template').setScale(0.5); // Shrink to fit sleeves
+                const cardBg = scene.add.image(x, y, 'card_template').setScale(0.4); // Shrink to fit sleeves
                 const nameText = scene.add.text(x, y - 40, moji.name, { fontFamily: 'Arial', fontSize: '10px', color: '#000', fontStyle: 'bold' }).setOrigin(0.5);
                 const qtyBadge = scene.add.text(x, y + 40, `x${qtyToShow}`, { fontFamily: 'Courier New', fontSize: '14px', color: '#8e44ad', fontStyle: 'bold', stroke: '#fff', strokeThickness: 2 }).setOrigin(0.5);
                 
