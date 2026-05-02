@@ -71,10 +71,10 @@ function create() {
 
     // Drop Zones
     scene.binderZone = scene.add.image(120, 700, 'zone_binder').setInteractive();
-    scene.add.text(120, 700, 'DROP TO SAVE', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
+    scene.add.text(120, 700, '', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
 
     scene.sellZone = scene.add.image(904, 700, 'zone_sell').setInteractive();
-    scene.add.text(904, 700, 'DROP TO SELL', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
+    scene.add.text(904, 700, '', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
 
     // Build Menus
     const storeOverlay = createOverlay(scene, '--- THE STORE ---');
