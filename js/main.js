@@ -101,12 +101,16 @@ function create() {
     const dashBg = scene.add.rectangle(512, 700, 1024, 136, 0x111111).setStrokeStyle(4, 0x333333);
 
     // Left: Binder Drop Zone
-    scene.binderZone = scene.add.rectangle(120, 700, 180, 100, 0x8e44ad);
+    scene.binderZone = scene.add.image(120, 700, 'zone_binder').setInteractive();
+    scene.add.text(120, 700, 'DROP TO SAVE', { fontSize: '16px', fontStyle: 'bold', color: '#fff' }).setOrigin(0.5);
+    
     // Future image: scene.binderZone = scene.add.image(120, 700, 'binderCover').setInteractive();
     scene.add.text(120, 700, 'DROP TO SAVE', { fontSize: '16px', fontStyle: 'bold' }).setOrigin(0.5);
 
     // Right: Sell Zone
-    scene.sellZone = scene.add.rectangle(904, 700, 180, 100, 0xc0392b);
+    scene.sellZone = scene.add.image(904, 700, 'zone_sell').setInteractive();
+    scene.add.text(904, 700, 'DROP TO SELL', { fontSize: '16px', fontStyle: 'bold', color: '#fff' }).setOrigin(0.5);
+    
     // Future image: scene.sellZone = scene.add.image(904, 700, 'sellTray').setInteractive();
     scene.add.text(904, 700, 'DROP TO SELL', { fontSize: '16px', fontStyle: 'bold' }).setOrigin(0.5);
 
