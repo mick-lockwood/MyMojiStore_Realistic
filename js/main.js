@@ -11,6 +11,11 @@ const packDatabase = {
 let playerMoney = 50.00;
 let playerPacks = { "basic": 0, "premium": 0, "legendary": 0 };
 
+// --- THE MISSING INVENTORY CODE ---
+let playerInventory = {};
+// Automatically give the player 0 of every card in the database to start
+myMojiDatabase.forEach(moji => playerInventory[moji.id] = 0);
+
 function calculateTotalPacks() {
     return playerPacks.basic + playerPacks.premium + playerPacks.legendary;
 }
