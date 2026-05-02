@@ -84,7 +84,7 @@ function create() {
     const scene = this; 
 
     // 2. Draw the background first so it sits at the very back
-    // scene.add.image(512, 384, 'tableBg');
+   scene.add.image(512, 384, 'bg_table');
 
     // --- TOP HUD (Clean & Minimal) ---
     const hudBg = scene.add.rectangle(512, 30, 1024, 60, 0x000000, 0.8); // 80% opacity black bar
