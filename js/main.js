@@ -358,7 +358,7 @@ function setupInventory(scene, overlay) {
 function setupBinder(scene, overlay) {
     overlay.currentTab = 'collection'; 
     overlay.currentCategory = 'Common'; 
-    overlay.currentPage = 0; // NEW: Track the current page!
+    overlay.currentPage = 0; 
 
     if(!overlay.binderContainer) {
         overlay.binderContainer = scene.add.container(0,0);
@@ -368,7 +368,7 @@ function setupBinder(scene, overlay) {
     overlay.refresh = () => {
         overlay.binderContainer.removeAll(true);
         
-        // 1. Draw the new Binder Graphic in the background (scaled to fit)
+        // 1. Draw the new Binder Graphic in the background
         const binderImg = scene.add.image(512, 384, 'binder_open').setScale(1);
         overlay.binderContainer.add(binderImg);
         
@@ -383,7 +383,7 @@ function setupBinder(scene, overlay) {
             let catColor = overlay.currentCategory === cat ? 0xf1c40f : 0x7f8c8d;
             const tabBtn = createJuicyButton(scene, tabX, 70, cat.toUpperCase(), () => {
                 overlay.currentCategory = cat;
-                overlay.currentPage = 0; // Reset to page 1 when changing categories
+                overlay.currentPage = 0; 
                 overlay.refresh();
             }, catColor);
             overlay.binderContainer.add(tabBtn);
@@ -395,16 +395,16 @@ function setupBinder(scene, overlay) {
         const modeText = overlay.currentTab === 'collection' ? 'VIEWING: MAIN SET' : 'VIEWING: DOUBLES';
         const modeBtn = createJuicyButton(scene, 512, 620, modeText, () => {
             overlay.currentTab = overlay.currentTab === 'collection' ? 'doubles' : 'collection';
-            overlay.currentPage = 0; // Reset to page 1 when changing modes
+            overlay.currentPage = 0; 
             overlay.refresh();
         }, modeColor);
-        modeBtn.list[0].width = 220; // widen button
+        modeBtn.list[0].width = 220; 
         overlay.binderContainer.add(modeBtn);
 
-        // 4. PREPARE THE DATA (Gather only the cards we actually have to show)
+        // 4. PREPARE THE DATA 
         let cardsToDisplay = [];
         myMojiDatabase.forEach((moji) => {
-            if (moji.rarity !== overlay.currentCategory) return; // Skip wrong rarities
+            if (moji.rarity !== overlay.currentCategory) return; 
 
             const owned = playerInventory[moji.id] || 0; 
             let qtyToShow = 0;
@@ -419,12 +419,10 @@ function setupBinder(scene, overlay) {
         // 5. PAGINATION MATH
         const CARDS_PER_PAGE = 18;
         const maxPages = Math.ceil(cardsToDisplay.length / CARDS_PER_PAGE);
-        
-        // Grab just the chunk of 18 cards for the current page
         const startIndex = overlay.currentPage * CARDS_PER_PAGE;
         const pageCards = cardsToDisplay.slice(startIndex, startIndex + CARDS_PER_PAGE);
 
-        // 6. DRAW THE SPREAD GRID (Using your exact tuned variables!)
+        // 6. DRAW THE SPREAD GRID 
         let startX = 152; 
         let startY = 225; 
         let spacingX = 121.5; 
@@ -435,15 +433,21 @@ function setupBinder(scene, overlay) {
         let row = 0;
 
         pageCards.forEach((item) => {
-            // Calculate grid X. If col >= 3, it's on the right page, so jump the spine gap
             let x = startX + (col * spacingX);
             if (col >= 3) x += spineGap;
             
             let y = startY + (row * spacingY);
             
-            // Draw the Mini Card (Using your exact scale!)
+            // Format Number: "m_001" -> "#001"
+            const cardNumber = '#' + item.moji.id.split('_')[1];
+
+            // Draw the Mini Card
             const cardBg = scene.add.image(x, y, 'card_template').setScale(0.45); 
-            const nameText = scene.add.text(x, y - 40, item.moji.name, { fontFamily: 'Arial', fontSize: '10px', color: '#000', fontStyle: 'bold' }).setOrigin(0.5);
+            
+            // Text Elements
+            const numText = scene.add.text(x - 38, y - 55, cardNumber, { fontFamily: 'Courier New', fontSize: '10px', color: '#7f8c8d', fontStyle: 'bold' }).setOrigin(0, 0.5);
+            const nameText = scene.add.text(x, y - 35, item.moji.name, { fontFamily: 'Arial', fontSize: '10px', color: '#000', fontStyle: 'bold' }).setOrigin(0.5);
+            const valText = scene.add.text(x, y - 20, `$${item.moji.baseValue.toFixed(2)}`, { fontFamily: 'Courier New', fontSize: '10px', color: '#27ae60', fontStyle: 'bold' }).setOrigin(0.5);
             const qtyBadge = scene.add.text(x, y + 40, `x${item.qty}`, { fontFamily: 'Courier New', fontSize: '14px', color: '#8e44ad', fontStyle: 'bold', stroke: '#fff', strokeThickness: 2 }).setOrigin(0.5);
             
             // Clicking the card "Takes it out"
@@ -455,7 +459,7 @@ function setupBinder(scene, overlay) {
                 spawnCardOnTable(scene, item.moji, 1);
             });
             
-            overlay.binderContainer.add([cardBg, nameText, qtyBadge]);
+            overlay.binderContainer.add([cardBg, numText, nameText, valText, qtyBadge]);
             
             // Move grid position
             col++;
@@ -467,11 +471,9 @@ function setupBinder(scene, overlay) {
 
         // 7. DRAW PAGE NAVIGATION UI
         if (maxPages > 1) {
-            // Page Indicator Text
             const pageText = scene.add.text(512, 680, `PAGE ${overlay.currentPage + 1} OF ${maxPages}`, { fontFamily: 'Courier New', fontSize: '18px', color: '#fff', fontStyle: 'bold', backgroundColor: '#000' }).setOrigin(0.5);
             overlay.binderContainer.add(pageText);
 
-            // Previous Button
             if (overlay.currentPage > 0) {
                 const prevBtn = createJuicyButton(scene, 350, 680, '< PREV', () => {
                     overlay.currentPage--;
@@ -480,7 +482,6 @@ function setupBinder(scene, overlay) {
                 overlay.binderContainer.add(prevBtn);
             }
             
-            // Next Button
             if (overlay.currentPage < maxPages - 1) {
                 const nextBtn = createJuicyButton(scene, 674, 680, 'NEXT >', () => {
                     overlay.currentPage++;
