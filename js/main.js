@@ -117,7 +117,7 @@ function create() {
     
     // Left: Binder Zone (Now functions as the Open Binder button!)
     scene.binderZone = scene.add.image(120, 700, 'zone_binder').setInteractive({ cursor: 'pointer' });
-    scene.add.text(120, 700, 'DROP TO SAVE\n(Click to Open)', { fontSize: '14px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3, align: 'center' }).setOrigin(0.5);
+    // scene.add.text(120, 700, 'DROP TO SAVE\n(Click to Open)', { fontSize: '14px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3, align: 'center' }).setOrigin(0.5);
     
     scene.binderZone.on('pointerdown', () => {
         binderOverlay.refresh();
