@@ -28,7 +28,8 @@ function preload() {
     
     // THIS is how we connect your uploaded files!
     // Make sure the names here match EXACTLY what is in your assets folder.
-    scene.load.image('bg_table', 'assets/bg_table.jpg'); // or .png depending on how you saved it
+    scene.load.image('bg_table', 'assets/bg_table.jpg');
+    scene.load.image('bg_mat', 'assets/bg_mat.png');
     scene.load.image('zone_binder', 'assets/zone_binder.png');
     scene.load.image('zone_sell', 'assets/zone_sell.png');
     
