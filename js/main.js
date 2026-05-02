@@ -1,18 +1,8 @@
 console.log("=== THE NEW UI CODE IS RUNNING ===");
 
-// --- DATABASE: BOOSTER PACKS ---
-const packDatabase = {
-    "basic": { name: "Basic Pack", cost: 5.00, color: 0x2ecc71, weights: { "Common": 75, "Rare": 20, "Epic": 4, "Legendary": 1 } },
-    "premium": { name: "Premium Pack", cost: 20.00, color: 0x9b59b6, weights: { "Common": 30, "Rare": 40, "Epic": 20, "Legendary": 10 } },
-    "legendary": { name: "Legendary Pack", cost: 100.00, color: 0xf1c40f, weights: { "Common": 0, "Rare": 20, "Epic": 40, "Legendary": 40 } }
-};
-
-// --- GLOBAL STATE ---
+// --- 1. GLOBAL STATE (Put this at the very top!) ---
 let playerMoney = 50.00;
 let playerPacks = { "basic": 0, "premium": 0, "legendary": 0 };
-let playerInventory = {};
-let shoppingCart = { "basic": 0, "premium": 0, "legendary": 0 }; 
-myMojiDatabase.forEach(moji => playerInventory[moji.id] = 0);
 
 function calculateTotalPacks() {
     return playerPacks.basic + playerPacks.premium + playerPacks.legendary;
