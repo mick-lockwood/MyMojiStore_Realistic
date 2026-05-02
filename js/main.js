@@ -124,7 +124,7 @@ function create() {
 
     // Right: Sell Zone
     scene.sellZone = scene.add.image(904, 700, 'zone_sell').setInteractive();
-    scene.add.text(904, 700, 'DROP TO SELL', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
+    // scene.add.text(904, 700, 'DROP TO SELL', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
 
     // Center UI (Removed "Binder" button since the drop zone does it now)
     createJuicyButton(scene, 420, 700, 'STORE', () => { 
