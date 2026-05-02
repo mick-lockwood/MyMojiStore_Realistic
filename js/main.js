@@ -1,6 +1,13 @@
 console.log("=== THE NEW UI CODE IS RUNNING ===");
 
-// --- 1. GLOBAL STATE (Put this at the very top!) ---
+// --- 1. GLOBAL STATE & DATABASES (Put this at the very top!) ---
+
+const packDatabase = {
+    "basic": { name: "Basic Pack", cost: 5.00, color: 0x2ecc71, weights: { "Common": 75, "Rare": 20, "Epic": 4, "Legendary": 1 } },
+    "premium": { name: "Premium Pack", cost: 20.00, color: 0x9b59b6, weights: { "Common": 30, "Rare": 40, "Epic": 20, "Legendary": 10 } },
+    "legendary": { name: "Legendary Pack", cost: 100.00, color: 0xf1c40f, weights: { "Common": 0, "Rare": 20, "Epic": 40, "Legendary": 40 } }
+};
+
 let playerMoney = 50.00;
 let playerPacks = { "basic": 0, "premium": 0, "legendary": 0 };
 
