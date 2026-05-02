@@ -400,9 +400,9 @@ function setupBinder(scene, overlay) {
 
         // 4. DRAW THE 9x2 SPREAD GRID
         // These coordinates are tuned to align with a standard centered binder graphic
-        let startX = 151.5; // <>
-        let startY = 230; // ^v
-        let spacingX = 122; 
+        let startX = 152; // <>
+        let startY = 225; // ^v
+        let spacingX = 121.5; 
         let spacingY = 150; 
         let spineGap = 114;  // Extra distance added only when jumping to the right page
 
