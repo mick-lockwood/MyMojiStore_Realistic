@@ -428,7 +428,7 @@ function setupBinder(scene, overlay) {
         let startX = 152; 
         let startY = 225; 
         let spacingX = 121.5; 
-        let spacingY = 150; 
+        let spacingY = 155; 
         let spineGap = 114;  
 
         let col = 0;
