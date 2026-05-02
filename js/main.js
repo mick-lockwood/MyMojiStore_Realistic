@@ -207,11 +207,17 @@ function spawnCardOnTable(scene, mojiData, index) {
     const container = scene.add.container(x, y);
     const cardBg = scene.add.image(0, 0, 'card_template').setScale(0.8);
     
+    // Extract the number from "m_001" to make "#001"
+    const cardNumber = '#' + mojiData.id.split('_')[1];
+
+    // New: Top-Left Card Number
+    const numText = scene.add.text(-75, -115, cardNumber, { fontFamily: 'Courier New', fontSize: '16px', color: '#7f8c8d', fontStyle: 'bold' }).setOrigin(0, 0.5);
+
     const nameText = scene.add.text(0, -90, mojiData.name, { fontFamily: 'Arial', fontSize: '18px', color: '#000', fontStyle: 'bold' }).setOrigin(0.5);
     const rarityText = scene.add.text(0, 80, mojiData.rarity, { fontFamily: 'Courier New', fontSize: '16px', color: '#8e44ad', fontStyle: 'bold' }).setOrigin(0.5);
     const valueText = scene.add.text(0, 110, `Value: $${mojiData.baseValue.toFixed(2)}`, { fontFamily: 'Courier New', fontSize: '16px', color: '#27ae60', fontStyle: 'bold' }).setOrigin(0.5);
 
-    container.add([cardBg, nameText, rarityText, valueText]);
+    container.add([cardBg, numText, nameText, rarityText, valueText]);
     container.setSize(cardBg.displayWidth, cardBg.displayHeight);
     container.setInteractive({ cursor: 'grab', draggable: true });
     container.mojiData = mojiData; 
