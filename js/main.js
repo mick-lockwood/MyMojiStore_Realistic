@@ -43,6 +43,7 @@ function create() {
 
     // Draw the background first
     scene.add.image(512, 384, 'bg_table');
+    scene.add.image(512, 384, 'bg_mat');
 
     // --- TOP HUD ---
     const hudBg = scene.add.rectangle(512, 30, 1024, 60, 0x000000, 0.8); 
