@@ -1,4 +1,4 @@
-console.log("=== THE COMPLETE GAME LOGIC IS RUNNING again ===");
+console.log("=== THE COMPLETE GAME LOGIC IS RUNNING (WITH FULL FEATURES) ===");
 
 // ==========================================
 // 1. GLOBAL STATE & DATABASES
@@ -11,6 +11,7 @@ const packDatabase = {
 
 let playerMoney = 50.00;
 let playerPacks = { "basic": 0, "premium": 0, "legendary": 0 };
+let shoppingCart = { "basic": 0, "premium": 0, "legendary": 0 }; 
 let playerInventory = {};
 
 // Give the player 0 of every card to start
@@ -36,13 +37,10 @@ const game = new Phaser.Game(config);
 
 function preload() {
     const scene = this;
-    // Load all your shiny new assets!
     scene.load.image('bg_table', 'assets/bg_table.jpg');
     scene.load.image('bg_mat', 'assets/bg_mat.png');
     scene.load.image('zone_binder', 'assets/zone_binder.png');
     scene.load.image('zone_sell', 'assets/zone_sell.png');
-    
-    // Make sure you have these, or the game will show broken image boxes!
     scene.load.image('card_template', 'assets/card_template.png');
     scene.load.image('pack_basic', 'assets/pack_basic.png');
     scene.load.image('pack_premium', 'assets/pack_premium.png');
@@ -71,10 +69,10 @@ function create() {
 
     // Drop Zones
     scene.binderZone = scene.add.image(120, 700, 'zone_binder').setInteractive();
-    scene.add.text(120, 700, '', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
+    // scene.add.text(120, 700, 'DROP TO SAVE', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
 
     scene.sellZone = scene.add.image(904, 700, 'zone_sell').setInteractive();
-    scene.add.text(904, 700, '', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
+    // scene.add.text(904, 700, 'DROP TO SELL', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
 
     // Build Menus
     const storeOverlay = createOverlay(scene, '--- THE STORE ---');
@@ -87,103 +85,96 @@ function create() {
     setupBinder(scene, binderOverlay);
 
     // Menu Action Buttons
-    createJuicyButton(scene, 350, 700, 'STORE', () => { storeOverlay.setVisible(true); });
+    createJuicyButton(scene, 350, 700, 'STORE', () => { 
+        storeOverlay.refresh(); 
+        storeOverlay.setVisible(true); 
+    });
     createJuicyButton(scene, 512, 700, 'OPEN PACK', () => { 
         inventoryOverlay.refresh(); 
         inventoryOverlay.setVisible(true); 
     }, 0xe67e22);
     createJuicyButton(scene, 674, 700, 'BINDER', () => { 
-        binderOverlay.refresh(); // Refresh binder to show newly saved cards!
+        binderOverlay.refresh(); 
         binderOverlay.setVisible(true); 
     });
 
-    // --- RESTORED: DRAG AND DROP LOGIC ---
+    // DRAG AND DROP LOGIC
     scene.input.on('drag', (pointer, gameObject, dragX, dragY) => {
         gameObject.x = dragX;
         gameObject.y = dragY;
-        gameObject.setDepth(50); // Bring to front while dragging
+        gameObject.setDepth(50);
     });
 
     scene.input.on('dragend', (pointer, gameObject) => {
-        gameObject.setDepth(10); // Reset depth
+        gameObject.setDepth(10);
         const bounds = gameObject.getBounds();
 
-        // Dropped on BINDER?
         if (Phaser.Geom.Intersects.RectangleToRectangle(bounds, scene.binderZone.getBounds())) {
-            playerInventory[gameObject.mojiData.id]++; // Add to inventory
-            gameObject.destroy(); // Remove from table
-            console.log("Saved to Binder!");
-        } 
-        // Dropped on SELL TRAY?
-        else if (Phaser.Geom.Intersects.RectangleToRectangle(bounds, scene.sellZone.getBounds())) {
-            playerMoney += gameObject.mojiData.baseValue; // Add money
+            playerInventory[gameObject.mojiData.id]++; 
+            gameObject.destroy(); 
+        } else if (Phaser.Geom.Intersects.RectangleToRectangle(bounds, scene.sellZone.getBounds())) {
+            playerMoney += gameObject.mojiData.baseValue; 
             scene.moneyText.setText('BANK: $' + playerMoney.toFixed(2));
-            gameObject.destroy(); // Remove from table
-            console.log("Sold card!");
+            gameObject.destroy(); 
         }
     });
 }
 
 // ==========================================
-// 4. RESTORED: CORE GAMEPLAY FUNCTIONS
+// 4. CORE GAMEPLAY FUNCTIONS
 // ==========================================
 
-// Gacha Logic: Picks a random card based on pack weights
+// PULLS 3 CARDS INSTEAD OF 1
 function openBoosterPack(scene, packKey) {
-    if (playerPacks[packKey] <= 0) return; // Stop if they have no packs
+    if (playerPacks[packKey] <= 0) return; 
     
-    // Deduct pack
     playerPacks[packKey]--;
     scene.packsText.setText('PACKS: ' + calculateTotalPacks());
 
-    // 1. Roll for Rarity
     const weights = packDatabase[packKey].weights;
-    const roll = Math.random() * 100;
-    let pulledRarity = "Common";
     
-    if (roll <= weights["Legendary"]) pulledRarity = "Legendary";
-    else if (roll <= weights["Legendary"] + weights["Epic"]) pulledRarity = "Epic";
-    else if (roll <= weights["Legendary"] + weights["Epic"] + weights["Rare"]) pulledRarity = "Rare";
+    // Loop 3 times to pull 3 cards
+    for (let i = 0; i < 3; i++) {
+        const roll = Math.random() * 100;
+        let pulledRarity = "Common";
+        
+        if (roll <= weights["Legendary"]) pulledRarity = "Legendary";
+        else if (roll <= weights["Legendary"] + weights["Epic"]) pulledRarity = "Epic";
+        else if (roll <= weights["Legendary"] + weights["Epic"] + weights["Rare"]) pulledRarity = "Rare";
 
-    // 2. Grab all cards matching that rarity
-    let possibleCards = myMojiDatabase.filter(c => c.rarity === pulledRarity);
-    if (possibleCards.length === 0) possibleCards = myMojiDatabase; // Safety fallback
+        let possibleCards = myMojiDatabase.filter(c => c.rarity === pulledRarity);
+        if (possibleCards.length === 0) possibleCards = myMojiDatabase;
 
-    // 3. Pick a random card from that pool
-    const finalCard = possibleCards[Math.floor(Math.random() * possibleCards.length)];
+        const finalCard = possibleCards[Math.floor(Math.random() * possibleCards.length)];
 
-    // 4. Spawn it on the table!
-    spawnCardOnTable(scene, finalCard);
+        // Pass 'i' so the cards space themselves out!
+        spawnCardOnTable(scene, finalCard, i);
+    }
 }
 
-// Spawns the physical, draggable card object on the screen
-function spawnCardOnTable(scene, mojiData) {
-    // Random position in the center of the table
-    const x = 512 + (Math.random() * 200 - 100); 
-    const y = 384 + (Math.random() * 100 - 50);
+// Spawns the physical card object
+function spawnCardOnTable(scene, mojiData, index) {
+    // Fan them out: Left, Center, Right
+    const startX = 350; 
+    const spacing = 160; 
+    const x = startX + (index * spacing) + (Math.random() * 20 - 10); // Slight random tilt
+    const y = 350 + (Math.random() * 40 - 20);
 
     const container = scene.add.container(x, y);
-
-    // Card Background
     const cardBg = scene.add.image(0, 0, 'card_template').setScale(0.8);
     
-    // Text Data
     const nameText = scene.add.text(0, -90, mojiData.name, { fontFamily: 'Arial', fontSize: '18px', color: '#000', fontStyle: 'bold' }).setOrigin(0.5);
     const rarityText = scene.add.text(0, 80, mojiData.rarity, { fontFamily: 'Courier New', fontSize: '16px', color: '#8e44ad', fontStyle: 'bold' }).setOrigin(0.5);
     const valueText = scene.add.text(0, 110, `Value: $${mojiData.baseValue.toFixed(2)}`, { fontFamily: 'Courier New', fontSize: '16px', color: '#27ae60', fontStyle: 'bold' }).setOrigin(0.5);
 
     container.add([cardBg, nameText, rarityText, valueText]);
     container.setSize(cardBg.displayWidth, cardBg.displayHeight);
-    
-    // Make it draggable
     container.setInteractive({ cursor: 'grab', draggable: true });
-    
-    // Attach the database info to the object so the drop zones know what it is
     container.mojiData = mojiData; 
     
-    // Little pop-in animation
     container.setScale(0);
-    scene.tweens.add({ targets: container, scaleX: 1, scaleY: 1, duration: 300, ease: 'Back.out' });
+    // Delay each card popping up slightly for a nice animation effect
+    scene.tweens.add({ targets: container, scaleX: 1, scaleY: 1, duration: 300, delay: index * 150, ease: 'Back.out' });
 }
 
 
@@ -212,8 +203,8 @@ function createOverlay(scene, titleText) {
     const bg = scene.add.rectangle(512, 384, 1024, 768, 0x000000, 0.9);
     bg.setInteractive(); 
     const panel = scene.add.rectangle(512, 384, 800, 600, 0x2c3e50).setStrokeStyle(4, 0xecf0f1);
-    const title = scene.add.text(512, 150, titleText, { fontFamily: 'Courier New', fontSize: '40px', color: '#f1c40f', fontStyle: 'bold' }).setOrigin(0.5);
-    const closeBtn = createJuicyButton(scene, 512, 600, 'CLOSE', () => container.setVisible(false), 0xe74c3c);
+    const title = scene.add.text(512, 120, titleText, { fontFamily: 'Courier New', fontSize: '40px', color: '#f1c40f', fontStyle: 'bold' }).setOrigin(0.5);
+    const closeBtn = createJuicyButton(scene, 512, 630, 'CLOSE', () => container.setVisible(false), 0xe74c3c);
     
     container.add([bg, panel, title, closeBtn]);
     container.setVisible(false);
@@ -221,25 +212,60 @@ function createOverlay(scene, titleText) {
     return container;
 }
 
+// RESTORED: ADD TO CART LOGIC
 function setupStore(scene, overlay) {
-    let xOffset = 260;
-    Object.keys(packDatabase).forEach(key => {
-        const pack = packDatabase[key];
-        const packImg = scene.add.image(xOffset, 320, 'pack_' + key).setScale(0.9);
-        const itemText = scene.add.text(xOffset, 450, `${pack.name}\n$${pack.cost.toFixed(2)}`, { fontFamily: 'Courier New', fontSize: '20px', color: '#ffffff', fontStyle: 'bold', align: 'center' }).setOrigin(0.5);
+    if(!overlay.storeContainer) {
+        overlay.storeContainer = scene.add.container(0,0);
+        overlay.add(overlay.storeContainer);
+    }
+
+    overlay.refresh = () => {
+        overlay.storeContainer.removeAll(true);
+        let xOffset = 260;
         
-        const buyBtn = createJuicyButton(scene, xOffset, 520, 'BUY', () => {
-            if (playerMoney >= pack.cost) {
-                playerMoney -= pack.cost;
-                playerPacks[key]++;
+        Object.keys(packDatabase).forEach(key => {
+            const pack = packDatabase[key];
+            const packImg = scene.add.image(xOffset, 280, 'pack_' + key).setScale(0.8);
+            
+            const itemText = scene.add.text(xOffset, 390, `${pack.name}\n$${pack.cost.toFixed(2)}`, { fontFamily: 'Courier New', fontSize: '18px', color: '#ffffff', fontStyle: 'bold', align: 'center' }).setOrigin(0.5);
+            
+            const cartText = scene.add.text(xOffset, 440, `In Cart: ${shoppingCart[key]}`, { fontFamily: 'Courier New', fontSize: '16px', color: '#f1c40f', fontStyle: 'bold' }).setOrigin(0.5);
+            
+            // Add to Cart Button
+            const addBtn = createJuicyButton(scene, xOffset, 500, '+ CART', () => {
+                shoppingCart[key]++;
+                overlay.refresh(); // Redraw to update text
+            }, 0x3498db);
+            
+            overlay.storeContainer.add([packImg, itemText, cartText, addBtn]);
+            xOffset += 250;
+        });
+
+        // Calculate Cart Total
+        let totalCost = 0;
+        Object.keys(shoppingCart).forEach(k => { totalCost += shoppingCart[k] * packDatabase[k].cost; });
+
+        const totalText = scene.add.text(512, 570, `TOTAL: $${totalCost.toFixed(2)}`, { fontFamily: 'Courier New', fontSize: '24px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+
+        // Checkout Button
+        const checkoutBtn = createJuicyButton(scene, 750, 570, 'CHECKOUT', () => {
+            if (playerMoney >= totalCost && totalCost > 0) {
+                playerMoney -= totalCost;
+                playerPacks.basic += shoppingCart.basic;
+                playerPacks.premium += shoppingCart.premium;
+                playerPacks.legendary += shoppingCart.legendary;
+                
+                // Clear cart
+                shoppingCart = { basic: 0, premium: 0, legendary: 0 };
+                
                 scene.moneyText.setText('BANK: $' + playerMoney.toFixed(2));
                 scene.packsText.setText('PACKS: ' + calculateTotalPacks());
+                overlay.refresh();
             }
         }, 0x27ae60);
-        
-        overlay.add([packImg, itemText, buyBtn]);
-        xOffset += 250;
-    });
+
+        overlay.storeContainer.add([totalText, checkoutBtn]);
+    };
 }
 
 function setupInventory(scene, overlay) {
@@ -259,10 +285,9 @@ function setupInventory(scene, overlay) {
                 const packImg = scene.add.image(xOffset, 320, 'pack_' + key).setScale(0.9);
                 const countText = scene.add.text(xOffset, 450, `Owned: ${playerPacks[key]}`, { fontFamily: 'Courier New', fontSize: '24px', color: '#f1c40f', fontStyle: 'bold' }).setOrigin(0.5);
                 
-                // RESTORED: The Open Button actually works now!
                 const openBtn = createJuicyButton(scene, xOffset, 520, 'OPEN', () => {
-                    openBoosterPack(scene, key); // Spawn the card
-                    overlay.setVisible(false);   // Close the menu so you can see the table
+                    openBoosterPack(scene, key); 
+                    overlay.setVisible(false);   
                 }, 0xe67e22);
                 
                 overlay.inventoryContainer.add([packImg, countText, openBtn]);
@@ -277,27 +302,54 @@ function setupInventory(scene, overlay) {
     };
 }
 
+// RESTORED: MULTIPLE PAGES IN BINDER
 function setupBinder(scene, overlay) {
+    overlay.currentTab = 'collection'; // Tracks if we are looking at Collection or Doubles
+
     if(!overlay.binderContainer) {
         overlay.binderContainer = scene.add.container(0,0);
         overlay.add(overlay.binderContainer);
     }
 
-    // Refresh function so it updates when you open it
     overlay.refresh = () => {
         overlay.binderContainer.removeAll(true);
+        
+        // Draw the Tab Buttons
+        const colColor = overlay.currentTab === 'collection' ? 0xf1c40f : 0x7f8c8d;
+        const colBtn = createJuicyButton(scene, 350, 180, 'MAIN SET', () => {
+            overlay.currentTab = 'collection';
+            overlay.refresh();
+        }, colColor);
+
+        const doubColor = overlay.currentTab === 'doubles' ? 0xf1c40f : 0x7f8c8d;
+        const doubBtn = createJuicyButton(scene, 674, 180, 'DOUBLES', () => {
+            overlay.currentTab = 'doubles';
+            overlay.refresh();
+        }, doubColor);
+
+        overlay.binderContainer.add([colBtn, doubBtn]);
+
+        // Draw the Cards
         let startX = 220;
-        let startY = 250;
+        let startY = 320;
         let col = 0;
         let row = 0;
         
         myMojiDatabase.forEach((moji) => {
-            if (playerInventory[moji.id] > 0) {
+            const owned = playerInventory[moji.id];
+            
+            // Logic: Show 1 in Collection. Show (owned - 1) in Doubles.
+            let qtyToShow = 0;
+            if (overlay.currentTab === 'collection' && owned > 0) qtyToShow = 1;
+            if (overlay.currentTab === 'doubles' && owned > 1) qtyToShow = owned - 1;
+
+            if (qtyToShow > 0) {
                 let x = startX + (col * 190);
                 let y = startY + (row * 240);
+                
                 const cardBg = scene.add.image(x, y, 'card_template').setScale(0.6);
                 const nameText = scene.add.text(x, y + 60, moji.name, { fontFamily: 'Arial', fontSize: '14px', color: '#000', fontStyle: 'bold' }).setOrigin(0.5);
-                const qtyText = scene.add.text(x, y + 80, `x${playerInventory[moji.id]}`, { fontFamily: 'Courier New', fontSize: '18px', color: '#8e44ad', fontStyle: 'bold' }).setOrigin(0.5);
+                const qtyText = scene.add.text(x, y + 80, `x${qtyToShow}`, { fontFamily: 'Courier New', fontSize: '18px', color: '#8e44ad', fontStyle: 'bold' }).setOrigin(0.5);
                 
                 overlay.binderContainer.add([cardBg, nameText, qtyText]);
                 col++;
@@ -306,7 +358,7 @@ function setupBinder(scene, overlay) {
         });
         
         if (Object.values(playerInventory).every(val => val === 0)) {
-            const emptyText = scene.add.text(512, 350, "Your binder is empty!\nOpen some packs to get cards.", { fontFamily: 'Courier New', fontSize: '28px', color: '#bdc3c7', align: 'center' }).setOrigin(0.5);
+            const emptyText = scene.add.text(512, 400, "Your binder is empty!", { fontFamily: 'Courier New', fontSize: '28px', color: '#bdc3c7', align: 'center' }).setOrigin(0.5);
             overlay.binderContainer.add(emptyText);
         }
     }
