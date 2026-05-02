@@ -1,4 +1,4 @@
-console.log("=== THE NEW UI CODE IS RUNNING ===");
+console.log("=== THE NEW UI CODE IS RUNNING AGAIN ===");
 
 // --- 1. GLOBAL STATE (Put this at the very top!) ---
 let playerMoney = 50.00;
