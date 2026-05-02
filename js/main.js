@@ -69,8 +69,13 @@ function create() {
 
     // 1. First, build the hidden menu overlays
     const storeOverlay = createOverlay(scene, '--- THE STORE ---');
+    setupStore(scene, storeOverlay);
+
     const inventoryOverlay = createOverlay(scene, '--- OPEN PACKS ---');
+    setupInventory(scene, inventoryOverlay);
+
     const binderOverlay = createOverlay(scene, '--- MY BINDER ---');
+    setupBinder(scene, binderOverlay);
 
     // 2. Now, create the action buttons and tell them to show the overlays when clicked
     createJuicyButton(scene, 350, 700, 'STORE', () => { 
@@ -151,4 +156,62 @@ function createOverlay(scene, titleText) {
     container.setDepth(100); 
     
     return container;
+}
+
+// ==========================================
+// --- MENU POPULATION LOGIC ---
+// ==========================================
+
+function setupStore(scene, overlay) {
+    let yOffset = 250;
+    
+    // Loop through our pack database and create a store item for each
+    Object.keys(packDatabase).forEach(key => {
+        const pack = packDatabase[key];
+        
+        // Pack Name & Price
+        const itemText = scene.add.text(350, yOffset, `${pack.name} - $${pack.cost.toFixed(2)}`, { 
+            fontFamily: 'Courier New', fontSize: '24px', color: '#ffffff', fontStyle: 'bold' 
+        }).setOrigin(0, 0.5);
+        
+        // Buy Button
+        const buyBtn = createJuicyButton(scene, 700, yOffset, 'BUY', () => {
+            if (playerMoney >= pack.cost) {
+                // Deduct money & add pack
+                playerMoney -= pack.cost;
+                playerPacks[key]++;
+                
+                // Update Top HUD
+                scene.moneyText.setText('BANK: $' + playerMoney.toFixed(2));
+                scene.packsText.setText('PACKS: ' + calculateTotalPacks());
+                
+                // Little visual bump to show it worked
+                scene.tweens.add({ targets: buyBtn, scaleX: 1.1, scaleY: 1.1, yoyo: true, duration: 100 });
+            } else {
+                console.log("Not enough money!"); // We can add a red flash here later
+            }
+        }, 0x27ae60); // Green button
+        
+        overlay.add([itemText, buyBtn]);
+        yOffset += 100; // Move down for the next item
+    });
+}
+
+function setupInventory(scene, overlay) {
+    // We will build out the actual gacha unboxing animation next, 
+    // for now, let's just show what you own!
+    const comingSoonText = scene.add.text(512, 300, "Pack Opening Animation\nComing Soon!", { 
+        fontFamily: 'Courier New', fontSize: '32px', color: '#3498db', align: 'center'
+    }).setOrigin(0.5);
+    
+    overlay.add([comingSoonText]);
+}
+
+function setupBinder(scene, overlay) {
+    // We will build the grid of your collected cards here next
+    const comingSoonText = scene.add.text(512, 300, "Card Grid View\nComing Soon!", { 
+        fontFamily: 'Courier New', fontSize: '32px', color: '#9b59b6', align: 'center'
+    }).setOrigin(0.5);
+    
+    overlay.add([comingSoonText]);
 }
