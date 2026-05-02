@@ -402,7 +402,7 @@ function setupBinder(scene, overlay) {
         // These coordinates are tuned to align with a standard centered binder graphic
         let startX = 152; // <>
         let startY = 240; // ^v
-        let spacingX = 120; 
+        let spacingX = 121; 
         let spacingY = 155; 
         let spineGap = 115;  // Extra distance added only when jumping to the right page
 
