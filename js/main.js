@@ -67,11 +67,23 @@ function create() {
     scene.sellZone = scene.add.image(904, 700, 'zone_sell').setInteractive();
     scene.add.text(904, 700, 'DROP TO SELL', { fontSize: '16px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
 
-    // Center: Action Buttons 
-    // (Note: clicking these will error until you paste back your overlay logic!)
-    createJuicyButton(scene, 350, 700, 'STORE', () => { /* Store logic */ });
-    createJuicyButton(scene, 512, 700, 'OPEN PACK', () => { /* Inventory logic */ }, 0xe67e22);
-    createJuicyButton(scene, 674, 700, 'BINDER', () => { /* Binder logic */ });
+    // 1. First, build the hidden menu overlays
+    const storeOverlay = createOverlay(scene, '--- THE STORE ---');
+    const inventoryOverlay = createOverlay(scene, '--- OPEN PACKS ---');
+    const binderOverlay = createOverlay(scene, '--- MY BINDER ---');
+
+    // 2. Now, create the action buttons and tell them to show the overlays when clicked
+    createJuicyButton(scene, 350, 700, 'STORE', () => { 
+        storeOverlay.setVisible(true); 
+    });
+    
+    createJuicyButton(scene, 512, 700, 'OPEN PACK', () => { 
+        inventoryOverlay.setVisible(true); 
+    }, 0xe67e22);
+    
+    createJuicyButton(scene, 674, 700, 'BINDER', () => { 
+        binderOverlay.setVisible(true); 
+    });
 }
 
 // --- THE "JUICY" BUTTON FACTORY ---
