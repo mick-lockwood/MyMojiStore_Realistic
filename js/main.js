@@ -89,7 +89,8 @@ function create() {
         storeOverlay.setVisible(true); 
     });
     
-    createJuicyButton(scene, 512, 700, 'OPEN PACK', () => { 
+    createJuicyButton(scene, 512, 700, 'INVENTORY', () => { 
+        inventoryOverlay.refresh(); // <--- This forces it to check your newly bought packs!
         inventoryOverlay.setVisible(true); 
     }, 0xe67e22);
     
@@ -170,19 +171,23 @@ function createOverlay(scene, titleText) {
 // ==========================================
 
 function setupStore(scene, overlay) {
-    let yOffset = 250;
+    let xOffset = 260; // Start drawing on the left side
     
     // Loop through our pack database and create a store item for each
     Object.keys(packDatabase).forEach(key => {
         const pack = packDatabase[key];
         
-        // Pack Name & Price
-        const itemText = scene.add.text(350, yOffset, `${pack.name} - $${pack.cost.toFixed(2)}`, { 
-            fontFamily: 'Courier New', fontSize: '24px', color: '#ffffff', fontStyle: 'bold' 
-        }).setOrigin(0, 0.5);
+        // 1. Draw the Pack Image
+        // (Assumes you have loaded 'pack_basic', 'pack_premium', etc. in preload)
+        const packImg = scene.add.image(xOffset, 320, 'pack_' + key).setScale(0.9);
         
-        // Buy Button
-        const buyBtn = createJuicyButton(scene, 700, yOffset, 'BUY', () => {
+        // 2. Name & Price Text
+        const itemText = scene.add.text(xOffset, 450, `${pack.name}\n$${pack.cost.toFixed(2)}`, { 
+            fontFamily: 'Courier New', fontSize: '20px', color: '#ffffff', fontStyle: 'bold', align: 'center' 
+        }).setOrigin(0.5);
+        
+        // 3. Buy Button
+        const buyBtn = createJuicyButton(scene, xOffset, 520, 'BUY', () => {
             if (playerMoney >= pack.cost) {
                 // Deduct money & add pack
                 playerMoney -= pack.cost;
@@ -195,30 +200,106 @@ function setupStore(scene, overlay) {
                 // Little visual bump to show it worked
                 scene.tweens.add({ targets: buyBtn, scaleX: 1.1, scaleY: 1.1, yoyo: true, duration: 100 });
             } else {
-                console.log("Not enough money!"); // We can add a red flash here later
+                // Red flash if you are broke!
+                scene.tweens.add({ targets: itemText, scaleX: 1.2, scaleY: 1.2, yoyo: true, duration: 100 });
+                itemText.setTint(0xff0000);
+                scene.time.delayedCall(200, () => itemText.clearTint());
             }
         }, 0x27ae60); // Green button
         
-        overlay.add([itemText, buyBtn]);
-        yOffset += 100; // Move down for the next item
+        overlay.add([packImg, itemText, buyBtn]);
+        xOffset += 250; // Move to the right for the next pack
     });
 }
 
 function setupInventory(scene, overlay) {
-    // We will build out the actual gacha unboxing animation next, 
-    // for now, let's just show what you own!
-    const comingSoonText = scene.add.text(512, 300, "Pack Opening Animation\nComing Soon!", { 
-        fontFamily: 'Courier New', fontSize: '32px', color: '#3498db', align: 'center'
-    }).setOrigin(0.5);
+    // Because inventory changes as you buy things, we create a container inside the overlay
+    // that we can clear and redraw every time you open the menu.
+    if(!overlay.inventoryContainer) {
+        overlay.inventoryContainer = scene.add.container(0,0);
+        overlay.add(overlay.inventoryContainer);
+    }
     
-    overlay.add([comingSoonText]);
+    // This function gets called every time you click "OPEN PACKS" on the main screen
+    overlay.refresh = () => {
+        overlay.inventoryContainer.removeAll(true); // Clear old data
+        
+        let xOffset = 260;
+        let hasPacks = false;
+        
+        Object.keys(playerPacks).forEach(key => {
+            if (playerPacks[key] > 0) {
+                hasPacks = true;
+                
+                // Pack Image
+                const packImg = scene.add.image(xOffset, 320, 'pack_' + key).setScale(0.9);
+                
+                // Quantity Text
+                const countText = scene.add.text(xOffset, 450, `Owned: ${playerPacks[key]}`, { 
+                    fontFamily: 'Courier New', fontSize: '24px', color: '#f1c40f', fontStyle: 'bold' 
+                }).setOrigin(0.5);
+                
+                // Open Button (Logic coming soon!)
+                const openBtn = createJuicyButton(scene, xOffset, 520, 'OPEN', () => {
+                    console.log(`Opening a ${key} pack!`);
+                }, 0xe67e22);
+                
+                overlay.inventoryContainer.add([packImg, countText, openBtn]);
+                xOffset += 250;
+            }
+        });
+        
+        if (!hasPacks) {
+            const emptyText = scene.add.text(512, 350, "You don't have any packs!\nGo buy some in the store.", { 
+                fontFamily: 'Courier New', fontSize: '28px', color: '#bdc3c7', align: 'center' 
+            }).setOrigin(0.5);
+            overlay.inventoryContainer.add(emptyText);
+        }
+    };
+    
+    overlay.refresh(); // Run once to set it up
 }
 
 function setupBinder(scene, overlay) {
-    // We will build the grid of your collected cards here next
-    const comingSoonText = scene.add.text(512, 300, "Card Grid View\nComing Soon!", { 
-        fontFamily: 'Courier New', fontSize: '32px', color: '#9b59b6', align: 'center'
-    }).setOrigin(0.5);
+    // Simple 4-column grid for the binder
+    let startX = 220;
+    let startY = 250;
+    let col = 0;
+    let row = 0;
     
-    overlay.add([comingSoonText]);
+    myMojiDatabase.forEach((moji, index) => {
+        // Only draw the card if the player owns at least 1
+        if (playerInventory[moji.id] > 0) {
+            let x = startX + (col * 190);
+            let y = startY + (row * 240);
+            
+            // Draw Card Template (Assumes 'card_template' is loaded)
+            const cardBg = scene.add.image(x, y, 'card_template').setScale(0.6);
+            
+            // Draw Name & Quantity
+            const nameText = scene.add.text(x, y + 60, moji.name, { 
+                fontFamily: 'Arial', fontSize: '14px', color: '#000', fontStyle: 'bold' 
+            }).setOrigin(0.5);
+            
+            const qtyText = scene.add.text(x, y + 80, `x${playerInventory[moji.id]}`, { 
+                fontFamily: 'Courier New', fontSize: '18px', color: '#8e44ad', fontStyle: 'bold' 
+            }).setOrigin(0.5);
+            
+            overlay.add([cardBg, nameText, qtyText]);
+            
+            col++;
+            if (col >= 4) { // Move to next row after 4 columns
+                col = 0;
+                row++;
+            }
+        }
+    });
+    
+    // If binder is empty
+    if (Object.values(playerInventory).every(val => val === 0)) {
+        const emptyText = scene.add.text(512, 350, "Your binder is empty!\nOpen some packs to get cards.", { 
+            fontFamily: 'Courier New', fontSize: '28px', color: '#bdc3c7', align: 'center' 
+        }).setOrigin(0.5);
+        overlay.add(emptyText);
+    }
 }
