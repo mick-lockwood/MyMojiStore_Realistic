@@ -1,3 +1,5 @@
+console.log("=== THE NEW UI CODE IS RUNNING ===");
+
 const config = {
     type: Phaser.AUTO,
     width: 1024,
