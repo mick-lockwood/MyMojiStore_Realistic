@@ -353,11 +353,12 @@ function setupInventory(scene, overlay) {
 }
 
 // ==========================================
-// 6. NEW BINDER SPREAD UI
+// 6. NEW BINDER SPREAD UI (WITH PAGINATION)
 // ==========================================
 function setupBinder(scene, overlay) {
     overlay.currentTab = 'collection'; 
     overlay.currentCategory = 'Common'; 
+    overlay.currentPage = 0; // NEW: Track the current page!
 
     if(!overlay.binderContainer) {
         overlay.binderContainer = scene.add.container(0,0);
@@ -372,7 +373,7 @@ function setupBinder(scene, overlay) {
         overlay.binderContainer.add(binderImg);
         
         // Hide standard overlay panel/title so the graphic shines
-        overlay.list[1].setVisible(false); // hides dark grey panel
+        overlay.list[1].setVisible(false); 
         overlay.titleObj.setVisible(false); 
 
         // 2. Rarity Category Tabs (Top)
@@ -382,6 +383,7 @@ function setupBinder(scene, overlay) {
             let catColor = overlay.currentCategory === cat ? 0xf1c40f : 0x7f8c8d;
             const tabBtn = createJuicyButton(scene, tabX, 70, cat.toUpperCase(), () => {
                 overlay.currentCategory = cat;
+                overlay.currentPage = 0; // Reset to page 1 when changing categories
                 overlay.refresh();
             }, catColor);
             overlay.binderContainer.add(tabBtn);
@@ -393,65 +395,103 @@ function setupBinder(scene, overlay) {
         const modeText = overlay.currentTab === 'collection' ? 'VIEWING: MAIN SET' : 'VIEWING: DOUBLES';
         const modeBtn = createJuicyButton(scene, 512, 620, modeText, () => {
             overlay.currentTab = overlay.currentTab === 'collection' ? 'doubles' : 'collection';
+            overlay.currentPage = 0; // Reset to page 1 when changing modes
             overlay.refresh();
         }, modeColor);
         modeBtn.list[0].width = 220; // widen button
         overlay.binderContainer.add(modeBtn);
 
-        // 4. DRAW THE 9x2 SPREAD GRID
-        // These coordinates are tuned to align with a standard centered binder graphic
-        let startX = 152; // <>
-        let startY = 225; // ^v
-        let spacingX = 121.5; 
-        let spacingY = 150; 
-        let spineGap = 114;  // Extra distance added only when jumping to the right page
+        // 4. PREPARE THE DATA (Gather only the cards we actually have to show)
+        let cardsToDisplay = [];
+        myMojiDatabase.forEach((moji) => {
+            if (moji.rarity !== overlay.currentCategory) return; // Skip wrong rarities
 
-        let col = 0;
-        let row = 0;
-        
-        let filteredCards = myMojiDatabase.filter(m => m.rarity === overlay.currentCategory);
-
-        filteredCards.forEach((moji) => {
-            const owned = playerInventory[moji.id];
-            
+            const owned = playerInventory[moji.id] || 0; 
             let qtyToShow = 0;
             if (overlay.currentTab === 'collection' && owned > 0) qtyToShow = 1;
             if (overlay.currentTab === 'doubles' && owned > 1) qtyToShow = owned - 1;
 
             if (qtyToShow > 0) {
-                // Calculate grid X. If col >= 3, it's on the right page, so jump the spine gap
-                let x = startX + (col * spacingX);
-                if (col >= 3) x += spineGap;
-                
-                let y = startY + (row * spacingY);
-                
-                // Draw the Mini Card
-                const cardBg = scene.add.image(x, y, 'card_template').setScale(0.45); // Shrink to fit sleeves
-                const nameText = scene.add.text(x, y - 40, moji.name, { fontFamily: 'Arial', fontSize: '10px', color: '#000', fontStyle: 'bold' }).setOrigin(0.5);
-                const qtyBadge = scene.add.text(x, y + 40, `x${qtyToShow}`, { fontFamily: 'Courier New', fontSize: '14px', color: '#8e44ad', fontStyle: 'bold', stroke: '#fff', strokeThickness: 2 }).setOrigin(0.5);
-                
-                // Clicking the card "Takes it out"
-                cardBg.setInteractive({ cursor: 'pointer' });
-                cardBg.on('pointerdown', () => {
-                    playerInventory[moji.id]--;
-                    saveGame(); // SAVE STATE
-                    overlay.setVisible(false);
-                    spawnCardOnTable(scene, moji, 1);
-                });
-                
-                overlay.binderContainer.add([cardBg, nameText, qtyBadge]);
-                
-                // Move grid position
-                col++;
-                if (col >= 6) { // 6 total columns across the spread
-                    col = 0; 
-                    row++; 
-                }
+                cardsToDisplay.push({ moji: moji, qty: qtyToShow });
             }
         });
+
+        // 5. PAGINATION MATH
+        const CARDS_PER_PAGE = 18;
+        const maxPages = Math.ceil(cardsToDisplay.length / CARDS_PER_PAGE);
+        
+        // Grab just the chunk of 18 cards for the current page
+        const startIndex = overlay.currentPage * CARDS_PER_PAGE;
+        const pageCards = cardsToDisplay.slice(startIndex, startIndex + CARDS_PER_PAGE);
+
+        // 6. DRAW THE SPREAD GRID (Using your exact tuned variables!)
+        let startX = 152; 
+        let startY = 225; 
+        let spacingX = 121.5; 
+        let spacingY = 150; 
+        let spineGap = 114;  
+
+        let col = 0;
+        let row = 0;
+
+        pageCards.forEach((item) => {
+            // Calculate grid X. If col >= 3, it's on the right page, so jump the spine gap
+            let x = startX + (col * spacingX);
+            if (col >= 3) x += spineGap;
+            
+            let y = startY + (row * spacingY);
+            
+            // Draw the Mini Card (Using your exact scale!)
+            const cardBg = scene.add.image(x, y, 'card_template').setScale(0.45); 
+            const nameText = scene.add.text(x, y - 40, item.moji.name, { fontFamily: 'Arial', fontSize: '10px', color: '#000', fontStyle: 'bold' }).setOrigin(0.5);
+            const qtyBadge = scene.add.text(x, y + 40, `x${item.qty}`, { fontFamily: 'Courier New', fontSize: '14px', color: '#8e44ad', fontStyle: 'bold', stroke: '#fff', strokeThickness: 2 }).setOrigin(0.5);
+            
+            // Clicking the card "Takes it out"
+            cardBg.setInteractive({ cursor: 'pointer' });
+            cardBg.on('pointerdown', () => {
+                playerInventory[item.moji.id]--;
+                saveGame();
+                overlay.setVisible(false);
+                spawnCardOnTable(scene, item.moji, 1);
+            });
+            
+            overlay.binderContainer.add([cardBg, nameText, qtyBadge]);
+            
+            // Move grid position
+            col++;
+            if (col >= 6) { 
+                col = 0; 
+                row++; 
+            }
+        });
+
+        // 7. DRAW PAGE NAVIGATION UI
+        if (maxPages > 1) {
+            // Page Indicator Text
+            const pageText = scene.add.text(512, 680, `PAGE ${overlay.currentPage + 1} OF ${maxPages}`, { fontFamily: 'Courier New', fontSize: '18px', color: '#fff', fontStyle: 'bold', backgroundColor: '#000' }).setOrigin(0.5);
+            overlay.binderContainer.add(pageText);
+
+            // Previous Button
+            if (overlay.currentPage > 0) {
+                const prevBtn = createJuicyButton(scene, 350, 680, '< PREV', () => {
+                    overlay.currentPage--;
+                    overlay.refresh();
+                }, 0x34495e);
+                overlay.binderContainer.add(prevBtn);
+            }
+            
+            // Next Button
+            if (overlay.currentPage < maxPages - 1) {
+                const nextBtn = createJuicyButton(scene, 674, 680, 'NEXT >', () => {
+                    overlay.currentPage++;
+                    overlay.refresh();
+                }, 0x34495e);
+                overlay.binderContainer.add(nextBtn);
+            }
+        }
         
         // Empty State Handler
-        if (filteredCards.every(m => playerInventory[m.id] === 0)) {
+        if (cardsToDisplay.length === 0) {
             const emptyText = scene.add.text(512, 384, `No ${overlay.currentCategory} cards here.`, { fontFamily: 'Courier New', fontSize: '24px', color: '#bdc3c7', align: 'center', backgroundColor: '#000' }).setOrigin(0.5);
             overlay.binderContainer.add(emptyText);
         }
