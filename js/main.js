@@ -92,7 +92,6 @@ function createJuicyButton(scene, x, y, text, onClick, color = 0x2980b9) {
     const container = scene.add.container(x, y);
     
     const bg = scene.add.rectangle(0, 0, 140, 50, color).setStrokeStyle(3, 0xffffff);
-    // Future image: const bg = scene.add.image(0, 0, 'btn');
     
     const txt = scene.add.text(0, 0, text, { 
         fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', fontStyle: 'bold' 
@@ -117,7 +116,10 @@ function createJuicyButton(scene, x, y, text, onClick, color = 0x2980b9) {
     });
     container.on('pointerup', () => container.setScale(1.1));
 
-    // --- OVERLAY MENU FACTORY ---
+    return container;
+} // <--- THIS BRACKET WAS MISSING! IT CLOSES THE BUTTON FUNCTION.
+
+// --- OVERLAY MENU FACTORY ---
 // Creates a simple full-screen popup menu
 function createOverlay(scene, titleText) {
     const container = scene.add.container(0, 0);
@@ -150,6 +152,5 @@ function createOverlay(scene, titleText) {
     
     return container;
 }
-
     return container;
 }
