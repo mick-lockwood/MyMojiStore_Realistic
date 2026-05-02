@@ -403,7 +403,7 @@ function setupBinder(scene, overlay) {
         let startX = 152; // <>
         let startY = 240; // ^v
         let spacingX = 121; 
-        let spacingY = 155; 
+        let spacingY = 150; 
         let spineGap = 115;  // Extra distance added only when jumping to the right page
 
         let col = 0;
